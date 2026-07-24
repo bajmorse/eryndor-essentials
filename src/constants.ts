@@ -11,8 +11,21 @@ export const I18N_PREFIX = "EE" as const;
 
 /** Setting keys, kept in one place to avoid typos across the codebase. */
 export const SETTINGS = {
-  /** Whether the module's helpers are active for this client. */
-  enabled: "enabled",
+  /**
+   * Master switch for the "hide DM-dropped tokens" feature. World-scoped so the
+   * GM owns it and players can't turn it off to reveal hidden tokens.
+   */
+  hideDmTokens: "hideDmTokens",
+} as const;
+
+/** Document flag keys stored under `flags.eryndor-essentials.*`. */
+export const FLAGS = {
+  /**
+   * Marks a token that should be invisible to players (but still targetable and
+   * interactive). Set automatically when the GM drops a token, or by hand from
+   * the token HUD.
+   */
+  invisibleToPlayers: "invisibleToPlayers",
 } as const;
 
 /** Foundry template paths (served from the module root at runtime). */

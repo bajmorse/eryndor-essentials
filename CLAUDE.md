@@ -1,9 +1,17 @@
 # Eryndor: Essentials — Claude guide
 
-A FoundryVTT **v14** module for the Eryndor campaign. Written in TypeScript,
-compiled to `dist/module.js` (what `module.json` loads). Currently an early
-scaffold: registers one client setting, preloads templates, logs on init/ready.
-Feature work is still to come.
+A FoundryVTT **v14** module (requires the **Daggerheart** system) for the Eryndor
+campaign. Written in TypeScript, compiled to `dist/module.js` (what `module.json`
+loads).
+
+## Features
+
+- **Invisible-to-players tokens** (`src/tokens/invisible-tokens.ts`) — when the GM
+  drops a token, it's flagged `flags.eryndor-essentials.invisibleToPlayers` and its
+  art is not rendered on player clients, yet it stays fully targetable/interactive
+  (we blank `mesh`/`border`/`nameplate`/etc. but never touch Foundry's `hidden`,
+  `token.visible`, or the container `hitArea`). World setting `hideDmTokens` is the
+  master switch; a GM-only token-HUD button toggles individual tokens.
 
 ## Build — read this first
 
@@ -35,8 +43,9 @@ rebuilds `dist/module.js`, **press F5** in the browser.
 ```
 src/
   module.ts            entry point — Hooks.once("init"|"ready")
-  constants.ts         MODULE_ID, MODULE_TITLE, LOG_PREFIX, SETTINGS, TEMPLATES
+  constants.ts         MODULE_ID, MODULE_TITLE, LOG_PREFIX, SETTINGS, FLAGS, TEMPLATES
   settings.ts          game.settings registration (called from init)
+  tokens/              per-feature modules, each exports a register…() called from init
   types/foundry.d.ts   minimal ambient Foundry type shim
 dist/module.js         build output (git-ignored)
 module.json            manifest — esmodules -> dist/module.js

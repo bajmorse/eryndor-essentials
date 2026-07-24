@@ -1,6 +1,8 @@
 {
   "EE.ModuleTitle": "Eryndor: Essentials",
 
-  "EE.Settings.Enabled.Name": "Enable Eryndor: Essentials",
-  "EE.Settings.Enabled.Hint": "Turn the module's helpers on or off for this client."
+  "EE.Settings.HideDmTokens.Name": "Hide DM-dropped tokens from players",
+  "EE.Settings.HideDmTokens.Hint": "When you (the GM) drop a token onto a scene, make it invisible to players while still letting them target and interact with it. Toggle any single token from its HUD with the eye icon.",
+
+  "EE.InvisibleTokens.HudToggle": "Toggle invisible to players"
 }

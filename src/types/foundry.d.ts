@@ -20,6 +20,52 @@ declare global {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   type JQuery = any;
 
+  /** A PIXI display object — we only ever toggle its visibility. */
+  interface DisplayObject {
+    visible: boolean;
+  }
+
+  /** The persisted side of a Token (embedded in a Scene). */
+  interface TokenDocument {
+    id: string;
+    /** Foundry's own GM-only hidden flag — deliberately left untouched here. */
+    hidden: boolean;
+    /** The placeable on the canvas, once drawn. */
+    object?: Token | null;
+    actor?: AnyObject | null;
+    getFlag(scope: string, key: string): unknown;
+    setFlag(scope: string, key: string, value: unknown): Promise<TokenDocument>;
+    unsetFlag(scope: string, key: string): Promise<TokenDocument>;
+    /** Mutate the document's source data in place (used from preCreate hooks). */
+    updateSource(changes: AnyObject, options?: AnyObject): object;
+  }
+
+  /** A Token placeable on the canvas. Only the members this module touches. */
+  interface Token {
+    id: string;
+    document: TokenDocument;
+    /** The sprite. Parented to the primary canvas group; null until drawn. */
+    mesh: DisplayObject | null;
+    border: DisplayObject;
+    nameplate: DisplayObject;
+    bars: DisplayObject;
+    tooltip: DisplayObject;
+    effects: DisplayObject;
+    levelIndicator?: DisplayObject | null;
+    /** Schedules an incremental refresh; fires the `refreshToken` hook. */
+    renderFlags: { set(flags: AnyObject): void };
+  }
+
+  /** The active canvas. `tokens` is undefined until the canvas is ready. */
+  const canvas: {
+    ready: boolean;
+    scene?: { id: string } | null;
+    tokens?: {
+      placeables: Token[];
+      get(id: string): Token | undefined;
+    };
+  } & AnyObject;
+
   /** Foundry's global hook dispatcher. */
   const Hooks: {
     on(hook: string, fn: (...args: any[]) => unknown): number;
