@@ -1,0 +1,6 @@
+{
+  "EE.ModuleTitle": "Eryndor: Essentials",
+
+  "EE.Settings.Enabled.Name": "Enable Eryndor: Essentials",
+  "EE.Settings.Enabled.Hint": "Turn the module's helpers on or off for this client."
+}
