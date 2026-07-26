@@ -51,6 +51,9 @@ declare global {
     bars: DisplayObject;
     tooltip: DisplayObject;
     effects: DisplayObject;
+    /** Target reticle graphics, drawn when the token is targeted. */
+    targetPips: DisplayObject;
+    targetArrows: DisplayObject;
     levelIndicator?: DisplayObject | null;
     /** Schedules an incremental refresh; fires the `refreshToken` hook. */
     renderFlags: { set(flags: AnyObject): void };

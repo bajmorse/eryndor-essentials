@@ -14,8 +14,10 @@
  *     container's `hitArea`/interaction. The token placeable stays visible and
  *     interactive to Foundry, so hover, the Target tool, and targeting keys all
  *     keep working — the player just can't see it.
- *   - The target reticle (`targetPips`/`targetArrows`) is left visible on purpose,
- *     so a player still gets feedback when they target the (unseen) token.
+ *   - The target reticle (`targetPips`/`targetArrows`) is blanked too, so targeting
+ *     the token (e.g. via the target-helper module) doesn't reveal its position on
+ *     a player's screen. Only the *visual* is hidden; the underlying target data
+ *     (`game.user.targets`) is untouched, so targeting still works.
  *
  * The per-token FLAGS.invisibleToPlayers flag is the source of truth for which
  * tokens are affected; SETTINGS.hideDmTokens is the GM's master on/off switch.
@@ -44,15 +46,17 @@ function applyPlayerVisibility(token: Token): void {
   if (!featureEnabled()) return;
   if (!isInvisibleToPlayers(token.document)) return;
 
-  // Hide everything that would give the token away. Left untouched:
-  // targetPips/targetArrows (so targeting feedback still shows) and the token
-  // container itself (so it stays interactive/targetable).
+  // Hide everything that would give the token away — including the target reticle,
+  // which otherwise draws around the token when it's targeted. The token container
+  // itself is left interactive/targetable; only its visuals are blanked.
   if (token.mesh) token.mesh.visible = false;
   token.border.visible = false;
   token.nameplate.visible = false;
   token.bars.visible = false;
   token.tooltip.visible = false;
   token.effects.visible = false;
+  token.targetPips.visible = false;
+  token.targetArrows.visible = false;
   if (token.levelIndicator) token.levelIndicator.visible = false;
 }
 
