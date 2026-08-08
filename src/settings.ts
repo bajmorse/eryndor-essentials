@@ -22,4 +22,17 @@ export function registerSettings(): void {
       }
     },
   });
+
+  // World-scoped: skipping the movement animation is an update option that reaches
+  // every client, so this can't meaningfully be a per-user preference.
+  game.settings.register(MODULE_ID, SETTINGS.disableDragAnimation, {
+    name: "EE.Settings.DisableDragAnimation.Name",
+    hint: "EE.Settings.DisableDragAnimation.Hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    // Off by default — this changes Foundry's stock behavior.
+    default: false,
+    // No onChange: the setting is read at drop time, so the next drag picks it up.
+  });
 }

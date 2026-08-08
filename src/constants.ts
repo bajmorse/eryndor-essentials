@@ -16,6 +16,12 @@ export const SETTINGS = {
    * GM owns it and players can't turn it off to reveal hidden tokens.
    */
   hideDmTokens: "hideDmTokens",
+  /**
+   * Make drag-and-dropped token movement instant instead of animated. World-scoped
+   * because the update option that skips the animation travels to every client, so
+   * one user's drag is un-animated for the whole table either way.
+   */
+  disableDragAnimation: "disableDragAnimation",
 } as const;
 
 /** Document flag keys stored under `flags.eryndor-essentials.*`. */

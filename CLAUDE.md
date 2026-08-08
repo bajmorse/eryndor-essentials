@@ -12,6 +12,13 @@ loads).
   (we blank `mesh`/`border`/`nameplate`/etc. but never touch Foundry's `hidden`,
   `token.visible`, or the container `hitArea`). World setting `hideDmTokens` is the
   master switch; a GM-only token-HUD button toggles individual tokens.
+- **Instant token drag** (`src/tokens/drag-animation.ts`) — world setting
+  `disableDragAnimation` makes drag-and-dropped tokens snap to the destination
+  instead of gliding at `CONFIG.Token.movement.defaultSpeed`. Implemented by
+  setting `options.animate = false` from `preUpdateToken` when the update
+  operation's `method` is `"dragging"`. Deliberately scoped to drag-drop only —
+  keyboard movement, the HUD, paste/undo, and other modules' API moves still
+  animate.
 
 ## Build — read this first
 
@@ -80,6 +87,11 @@ styles/ templates/ lang/ packs/   served from the repo root as-is
 - **Hand-edited JSON** (`lang/`, `packs/`): save **UTF-8 without a BOM**. Foundry's
   loader chokes on a BOM, and PowerShell's `Set-Content -Encoding utf8` adds one —
   use `[System.IO.File]::WriteAllText(path, text, (New-Object System.Text.UTF8Encoding($false)))`.
+- **Update options are shared state**: the `options` object handed to a
+  `preUpdate<Type>` hook *is* the database operation — the client backend
+  re-assigns it after the hooks run, so mutating it there is supported, and the
+  result travels to every client with the update. That's how one user's drag can
+  un-animate for the whole table.
 - **World state**: only GMs can write world-scoped settings; all clients can read.
   Player→GM coordination goes over `game.socket` — enabled via `"socket": true`
   in `module.json`. Use the `SOCKET_EVENT` channel (`module.eryndor-essentials`).

@@ -6,12 +6,14 @@
  */
 import { LOG_PREFIX, TEMPLATES } from "./constants.js";
 import { registerSettings } from "./settings.js";
+import { registerDragAnimation } from "./tokens/drag-animation.js";
 import { registerInvisibleTokens } from "./tokens/invisible-tokens.js";
 
 Hooks.once("init", async () => {
   console.log(`${LOG_PREFIX} Initializing.`);
   registerSettings();
   registerInvisibleTokens();
+  registerDragAnimation();
   await foundry.applications.handlebars.loadTemplates(Object.values(TEMPLATES));
 });
 

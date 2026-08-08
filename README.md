@@ -2,11 +2,22 @@
 
 Essential quality-of-life tools for the Eryndor campaign in Foundry VTT v14.
 
+## Features
+
+- **Hide DM-dropped tokens from players** — tokens the GM drops are invisible to
+  players while staying fully targetable and interactive. A GM-only eye button on
+  the token HUD toggles individual tokens.
+- **Disable token drag animation** — drag-and-dropped tokens snap to their
+  destination instead of gliding there at Foundry's fixed animation speed. Only
+  drag-and-drop is affected; keyboard movement still animates.
+
+Both are world settings, configured under *Settings → Configure Settings →
+Eryndor: Essentials*.
+
 ## Status
 
-Early scaffold. The module loads, registers a client setting, and preloads its
-templates — feature work is still to come. Built with a TypeScript + Vite
-toolchain (run in Docker); see [Building](#building).
+Built with a TypeScript + Vite toolchain (run in Docker); see
+[Building](#building).
 
 ## Installation
 
@@ -62,6 +73,7 @@ eryndor-essentials/
     module.ts            #   entry point (init / ready hooks)
     constants.ts         #   ids, settings keys, template paths
     settings.ts          #   game.settings registration
+    tokens/              #   per-feature modules (invisible tokens, drag animation)
     types/foundry.d.ts   #   minimal ambient Foundry type shim
   dist/module.js         # build output (git-ignored)
   styles/module.css      # stylesheet
