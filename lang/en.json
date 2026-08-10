@@ -7,5 +7,37 @@
   "EE.Settings.DisableDragAnimation.Name": "Disable token drag animation",
   "EE.Settings.DisableDragAnimation.Hint": "Dragging and dropping a token moves it instantly instead of gliding it to the destination at Foundry's fixed animation speed. Applies to everyone at the table, and only to drag-and-drop — keyboard movement still animates.",
 
-  "EE.InvisibleTokens.HudToggle": "Toggle invisible to players"
+  "EE.Settings.HotbarPageSwap.Name": "Swap hotbar page on token selection",
+  "EE.Settings.HotbarPageSwap.Hint": "Selecting a token switches the hotbar to the page assigned to that token's character. Set the assignments with the button below.",
+
+  "EE.Settings.HotbarPagesMenu.Name": "Hotbar pages",
+  "EE.Settings.HotbarPagesMenu.Label": "Configure Assignments",
+  "EE.Settings.HotbarPagesMenu.Hint": "Choose which hotbar page each character switches to, and which page to fall back to for everything else.",
+
+  "EE.InvisibleTokens.HudToggle": "Toggle invisible to players",
+
+  "EE.HotbarPages.Title": "Hotbar Pages",
+  "EE.HotbarPages.Notes": "Assign a character to a hotbar page and the bar switches to that page whenever one of its tokens is selected. These assignments do nothing until \"Swap hotbar page on token selection\" is turned on in the module settings.",
+
+  "EE.HotbarPages.GeneralLegend": "General",
+  "EE.HotbarPages.DefaultLabel": "Default page",
+  "EE.HotbarPages.DefaultHint": "Shown when an unassigned token is selected, or when nothing is selected at all.",
+  "EE.HotbarPages.DefaultNone": "Leave the hotbar unchanged",
+  "EE.HotbarPages.ApplyToPlayersLabel": "Apply to players",
+  "EE.HotbarPages.ApplyToPlayersHint": "Off by default: players keep their own macros on their own pages, so only your hotbar follows the selection.",
+
+  "EE.HotbarPages.AssignmentsLegend": "Character Assignments",
+  "EE.HotbarPages.ActorLabel": "Character",
+  "EE.HotbarPages.ActorBlank": "— Choose a character —",
+  "EE.HotbarPages.PageLabel": "Hotbar page",
+  "EE.HotbarPages.PageOption": "Page {page}",
+  "EE.HotbarPages.MissingActor": "(deleted character {id})",
+  "EE.HotbarPages.NoAssignments": "No characters assigned yet.",
+  "EE.HotbarPages.NoActors": "This world has no actors to assign.",
+  "EE.HotbarPages.Add": "Add Assignment",
+  "EE.HotbarPages.Remove": "Remove assignment",
+
+  "EE.HotbarPages.Save": "Save",
+  "EE.HotbarPages.Cancel": "Cancel",
+  "EE.HotbarPages.Saved": "Hotbar page assignments saved."
 }

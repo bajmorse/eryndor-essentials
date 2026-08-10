@@ -2,3 +2,51 @@
  *
  * Foundry live-applies changes to this file with no page refresh while a world
  * is running. Add feature styles below as they are built. */
+
+/* --- Hotbar page assignment window --------------------------------------- */
+
+/* ApplicationV2 parts must render one root element, so the window's contents sit
+ * in a wrapper. That wrapper, not the <form>, is what the fieldsets and footer
+ * are children of — so it has to carry the column layout .standard-form would
+ * otherwise apply directly. */
+.ee-hotbar-pages .ee-hotbar-pages-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ee-hotbar-pages .ee-hotbar-rows {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* Character name takes the slack; the page picker and the delete button stay put. */
+.ee-hotbar-pages .ee-hotbar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.ee-hotbar-pages .ee-hotbar-row select[name="actorId"] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ee-hotbar-pages .ee-hotbar-row select[name="page"] {
+  flex: 0 0 8rem;
+}
+
+.ee-hotbar-pages .ee-hotbar-remove {
+  flex: 0 0 auto;
+  width: 2rem;
+  padding: 0;
+  line-height: 1;
+}
+
+.ee-hotbar-pages .ee-hotbar-add {
+  width: fit-content;
+}

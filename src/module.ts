@@ -5,6 +5,7 @@
  * sibling modules under `src/`; this file only bootstraps.
  */
 import { LOG_PREFIX, TEMPLATES } from "./constants.js";
+import { registerHotbarPages } from "./hotbar/hotbar-pages.js";
 import { registerSettings } from "./settings.js";
 import { registerDragAnimation } from "./tokens/drag-animation.js";
 import { registerInvisibleTokens } from "./tokens/invisible-tokens.js";
@@ -14,6 +15,7 @@ Hooks.once("init", async () => {
   registerSettings();
   registerInvisibleTokens();
   registerDragAnimation();
+  registerHotbarPages();
   await foundry.applications.handlebars.loadTemplates(Object.values(TEMPLATES));
 });
 

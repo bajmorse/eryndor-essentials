@@ -22,6 +22,24 @@ export const SETTINGS = {
    * one user's drag is un-animated for the whole table either way.
    */
   disableDragAnimation: "disableDragAnimation",
+  /**
+   * Master switch for swapping the hotbar page to match the selected token's
+   * actor. World-scoped so the GM owns the whole feature.
+   */
+  hotbarPageSwap: "hotbarPageSwap",
+  /**
+   * The actor→page assignments behind {@link SETTINGS.hotbarPageSwap}, edited
+   * through the {@link SETTINGS.hotbarPagesMenu} window rather than the settings
+   * list. Shape: `{ defaultPage: number, applyToPlayers: boolean,
+   * pages: Record<actorId, number> }`.
+   */
+  hotbarPages: "hotbarPages",
+} as const;
+
+/** Settings-menu keys (buttons that open a config window instead of a control). */
+export const MENUS = {
+  /** Opens the actor→hotbar-page assignment window. GM only. */
+  hotbarPagesMenu: "hotbarPagesMenu",
 } as const;
 
 /** Document flag keys stored under `flags.eryndor-essentials.*`. */
@@ -36,8 +54,8 @@ export const FLAGS = {
 
 /** Foundry template paths (served from the module root at runtime). */
 export const TEMPLATES = {
-  // Add template paths here as features are built, e.g.:
-  // panel: `modules/${MODULE_ID}/templates/panel.hbs`,
+  /** The actor→hotbar-page assignment window (settings menu). */
+  hotbarPages: `modules/${MODULE_ID}/templates/hotbar-pages.hbs`,
 } as const;
 
 /** Our cross-client channel. Requires `"socket": true` in module.json. */

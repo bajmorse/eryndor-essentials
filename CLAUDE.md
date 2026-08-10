@@ -19,6 +19,16 @@ loads).
   operation's `method` is `"dragging"`. Deliberately scoped to drag-drop only —
   keyboard movement, the HUD, paste/undo, and other modules' API moves still
   animate.
+- **Per-actor hotbar pages** (`src/hotbar/hotbar-pages.ts`, `hotbar-pages-app.ts`) —
+  selecting a token swaps the hotbar to the page assigned to its actor; anything
+  unassigned (or an empty selection) falls back to a configurable default page.
+  World setting `hotbarPageSwap` is the master switch; the assignments live in one
+  world object setting `hotbarPages` (`{ defaultPage, applyToPlayers, pages }`)
+  edited through the GM-only `hotbarPagesMenu` window. Driven off `controlToken` +
+  `canvasReady`, debounced so the release/control pair one click produces yields a
+  single page change. Assignments key on `token.document.actorId` (the *base*
+  actor) — `token.actor.id` differs for unlinked tokens. Foundry's hotbar has
+  exactly **5** pages: `Hotbar#changePage` throws outside 1–5.
 
 ## Build — read this first
 

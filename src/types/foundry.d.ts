@@ -30,6 +30,11 @@ declare global {
     id: string;
     /** Foundry's own GM-only hidden flag — deliberately left untouched here. */
     hidden: boolean;
+    /**
+     * Id of the *base* Actor this token represents. Unlike `actor.id`, this is
+     * stable for unlinked tokens (whose `actor` is a synthetic ActorDelta actor).
+     */
+    actorId?: string | null;
     /** The placeable on the canvas, once drawn. */
     object?: Token | null;
     actor?: AnyObject | null;
@@ -65,6 +70,8 @@ declare global {
     scene?: { id: string } | null;
     tokens?: {
       placeables: Token[];
+      /** Currently selected tokens, in the order they were selected (last = newest). */
+      controlled: Token[];
       get(id: string): Token | undefined;
     };
   } & AnyObject;
@@ -89,6 +96,11 @@ declare global {
       set(namespace: string, key: string, value: unknown): Promise<unknown>;
     };
     user?: { id: string; isGM: boolean; name: string } & AnyObject;
+    /** World actors. Undefined before the `setup` hook. */
+    actors?: {
+      contents: AnyObject[];
+      get(id: string): AnyObject | undefined;
+    } & AnyObject;
     /** Present once the socket connects; requires `"socket": true` in module.json. */
     socket?: {
       on(event: string, callback: (...args: any[]) => void): void;
@@ -106,6 +118,8 @@ declare global {
   const CONFIG: AnyObject;
   const ui: AnyObject & {
     notifications?: { info(m: string): void; warn(m: string): void; error(m: string): void };
+    /** The macro bar. Foundry supports exactly 5 pages; `changePage` throws outside 1–5. */
+    hotbar?: { page: number; changePage(page: number): Promise<void> } & AnyObject;
   };
 
   /** The Foundry client-side API namespace (ApplicationV2, template helpers). */
