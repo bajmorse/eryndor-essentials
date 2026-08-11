@@ -8,16 +8,23 @@
   "EE.Settings.DisableDragAnimation.Hint": "Dragging and dropping a token moves it instantly instead of gliding it to the destination at Foundry's fixed animation speed. Applies to everyone at the table, and only to drag-and-drop — keyboard movement still animates.",
 
   "EE.Settings.HotbarPageSwap.Name": "Swap hotbar page on token selection",
-  "EE.Settings.HotbarPageSwap.Hint": "Selecting a token switches the hotbar to the page assigned to that token's character. Set the assignments with the button below.",
+  "EE.Settings.HotbarPageSwap.Hint": "Selecting a token switches the hotbar to the page assigned to that token's character. Nothing else in this window has any effect until this is on.",
 
-  "EE.Settings.HotbarPagesMenu.Name": "Hotbar pages",
+  "EE.Settings.RefreshRaisedPortraits.Name": "Refresh raised portraits on artwork change",
+  "EE.Settings.RefreshRaisedPortraits.Hint": "When a character's portrait image changes while Ginzzzu's Portraits is showing it, update the raised portrait to match instead of leaving the old artwork on screen. Portraits with a custom image or an active emotion are left alone.",
+
+  "EE.Settings.GeneralFeaturesMenu.Name": "General Features",
+  "EE.Settings.GeneralFeaturesMenu.Label": "Configure",
+  "EE.Settings.GeneralFeaturesMenu.Hint": "Token visibility, drag movement, and keeping raised portraits in step with character artwork.",
+
+  "EE.Settings.HotbarPagesMenu.Name": "Per-Token Hotbars",
   "EE.Settings.HotbarPagesMenu.Label": "Configure Assignments",
   "EE.Settings.HotbarPagesMenu.Hint": "Choose which hotbar page each character switches to, and which page to fall back to for everything else.",
 
   "EE.InvisibleTokens.HudToggle": "Toggle invisible to players",
 
-  "EE.HotbarPages.Title": "Hotbar Pages",
-  "EE.HotbarPages.Notes": "Assign a character to a hotbar page and the bar switches to that page whenever one of its tokens is selected. These assignments do nothing until \"Swap hotbar page on token selection\" is turned on in the module settings.",
+  "EE.HotbarPages.Title": "Per-Token Hotbars",
+  "EE.HotbarPages.Notes": "Assign a character to a hotbar page and the bar switches to that page whenever one of its tokens is selected.",
 
   "EE.HotbarPages.GeneralLegend": "General",
   "EE.HotbarPages.DefaultLabel": "Default page",
@@ -39,5 +46,30 @@
 
   "EE.HotbarPages.Save": "Save",
   "EE.HotbarPages.Cancel": "Cancel",
-  "EE.HotbarPages.Saved": "Hotbar page assignments saved."
+  "EE.HotbarPages.Saved": "Hotbar page assignments saved.",
+
+  "EE.Settings.DaggerheartAutomationMenu.Name": "Daggerheart Automation",
+  "EE.Settings.DaggerheartAutomationMenu.Label": "Configure Automation",
+  "EE.Settings.DaggerheartAutomationMenu.Hint": "Integrations with Daggerheart-specific modules, including syncing character portraits to The Void's Hybrid Form.",
+
+  "EE.Settings.VoidHybridFormPortrait.Name": "Sync portrait to Hybrid Form",
+  "EE.Settings.VoidHybridFormPortrait.Hint": "When The Void puts an Order of the Lycan character into Hybrid Form, change the character sheet portrait to match the transformed token art, and change it back when the form is dropped.",
+
+  "EE.Settings.VoidHybridFormPrototype.Name": "Also transform the prototype token",
+  "EE.Settings.VoidHybridFormPrototype.Hint": "Additionally rewrite the character's prototype token, so a token dragged onto a scene mid-transformation arrives in Hybrid Form. Off by default: unlike the portrait, this changes saved character data.",
+
+  "EE.Config.Save": "Save",
+  "EE.Config.Cancel": "Cancel",
+  "EE.Config.Saved": "Settings saved.",
+
+  "EE.GeneralFeatures.Title": "General Features",
+  "EE.GeneralFeatures.TokensLegend": "Tokens",
+  "EE.GeneralFeatures.PortraitsLegend": "Portraits",
+  "EE.GeneralFeatures.Version": "Version",
+
+  "EE.Automation.Title": "Daggerheart Automation",
+  "EE.Automation.Tabs.Void": "The Void Automations",
+  "EE.Automation.HybridFormLegend": "Hybrid Form",
+  "EE.Automation.VoidFound": "The Void (Unofficial) is active",
+  "EE.Automation.VoidMissing": "The Void (Unofficial) is not installed or not enabled. These options will do nothing until it is."
 }

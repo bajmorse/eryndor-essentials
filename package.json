@@ -1,6 +1,6 @@
 {
   "name": "eryndor-essentials",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Eryndor: Essentials — quality-of-life tools for the Eryndor campaign in FoundryVTT.",
   "type": "module",
   "private": true,

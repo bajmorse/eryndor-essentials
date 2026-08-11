@@ -1,0 +1,41 @@
+{{!-- "The Void Automations" tab of the Daggerheart Automation window. The `name`
+     on each input matches its key in SETTINGS, which is how ConfigWindow reads
+     them back on save. `tab` comes from _preparePartContext, and the
+     data-group/data-tab pair is what changeTab looks for. --}}
+<section class="tab {{tab.cssClass}}" data-group="{{tab.group}}" data-tab="{{tab.id}}">
+
+  {{#if voidActive}}
+    <p class="notes ee-status-ok">
+      <i class="fa-solid fa-circle-check"></i>
+      {{localize "EE.Automation.VoidFound"}} (v{{voidVersion}})
+    </p>
+  {{else}}
+    <p class="notes ee-status-warn">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      {{localize "EE.Automation.VoidMissing"}}
+    </p>
+  {{/if}}
+
+  <fieldset>
+    <legend>{{localize "EE.Automation.HybridFormLegend"}}</legend>
+
+    <div class="form-group">
+      <label for="ee-void-portrait">{{localize "EE.Settings.VoidHybridFormPortrait.Name"}}</label>
+      <div class="form-fields">
+        <input type="checkbox" id="ee-void-portrait" name="voidHybridFormPortrait"
+               {{#if portrait}}checked{{/if}}>
+      </div>
+      <p class="hint">{{localize "EE.Settings.VoidHybridFormPortrait.Hint"}}</p>
+    </div>
+
+    <div class="form-group">
+      <label for="ee-void-prototype">{{localize "EE.Settings.VoidHybridFormPrototype.Name"}}</label>
+      <div class="form-fields">
+        <input type="checkbox" id="ee-void-prototype" name="voidHybridFormPrototype"
+               {{#if prototype}}checked{{/if}}>
+      </div>
+      <p class="hint">{{localize "EE.Settings.VoidHybridFormPrototype.Hint"}}</p>
+    </div>
+  </fieldset>
+
+</section>

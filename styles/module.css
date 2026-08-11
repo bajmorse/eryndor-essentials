@@ -50,3 +50,30 @@
 .ee-hotbar-pages .ee-hotbar-add {
   width: fit-content;
 }
+
+/* --- Module configuration windows ----------------------------------------- */
+
+/* Tab visibility is entirely core's: `.tab[data-tab]:not(.active)` hides, and the
+ * `standard-form` class on the window supplies `.tab.active { display: flex }`.
+ * Nothing here should re-implement that. */
+
+/* An untabbed window has no `.tab` to inherit that column layout from, and its
+ * part must render one root element — so the wrapper carries it instead. */
+.ee-config .ee-config-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Integration status lines: present tense, so the icon carries the meaning. */
+.ee-config .ee-status-ok,
+.ee-config .ee-status-warn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.ee-config .ee-status-warn {
+  color: var(--color-level-warning, #cc7722);
+}

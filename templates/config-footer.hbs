@@ -1,0 +1,13 @@
+{{!-- Save/Cancel for the whole window, rendered below the tabs rather than inside
+     one. `data-ee` rather than `data-action` because the click dispatch is our own
+     delegated listener (see CLAUDE.md). --}}
+<footer class="form-footer">
+  <button type="button" data-ee="cancel">
+    <i class="fa-solid fa-xmark"></i>
+    {{localize "EE.Config.Cancel"}}
+  </button>
+  <button type="button" data-ee="save">
+    <i class="fa-solid fa-floppy-disk"></i>
+    {{localize "EE.Config.Save"}}
+  </button>
+</footer>

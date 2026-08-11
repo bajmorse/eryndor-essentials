@@ -9,6 +9,15 @@
   <legend>{{localize "EE.HotbarPages.GeneralLegend"}}</legend>
 
   <div class="form-group">
+    <label for="ee-hotbar-enabled">{{localize "EE.Settings.HotbarPageSwap.Name"}}</label>
+    <div class="form-fields">
+      <input type="checkbox" id="ee-hotbar-enabled" name="hotbarPageSwap"
+             {{#if enabled}}checked{{/if}}>
+    </div>
+    <p class="hint">{{localize "EE.Settings.HotbarPageSwap.Hint"}}</p>
+  </div>
+
+  <div class="form-group">
     <label for="ee-hotbar-default-page">{{localize "EE.HotbarPages.DefaultLabel"}}</label>
     <div class="form-fields">
       <select id="ee-hotbar-default-page" name="defaultPage">

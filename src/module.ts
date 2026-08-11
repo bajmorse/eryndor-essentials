@@ -6,6 +6,8 @@
  */
 import { LOG_PREFIX, TEMPLATES } from "./constants.js";
 import { registerHotbarPages } from "./hotbar/hotbar-pages.js";
+import { registerGinzzzuPortraits } from "./integrations/ginzzzu-portraits.js";
+import { registerVoidHybridForm } from "./integrations/void-hybrid-form.js";
 import { registerSettings } from "./settings.js";
 import { registerDragAnimation } from "./tokens/drag-animation.js";
 import { registerInvisibleTokens } from "./tokens/invisible-tokens.js";
@@ -16,6 +18,9 @@ Hooks.once("init", async () => {
   registerInvisibleTokens();
   registerDragAnimation();
   registerHotbarPages();
+  // Third-party integrations: each hooks nothing unless its module is active.
+  registerVoidHybridForm();
+  registerGinzzzuPortraits();
   await foundry.applications.handlebars.loadTemplates(Object.values(TEMPLATES));
 });
 

@@ -96,6 +96,16 @@ declare global {
       set(namespace: string, key: string, value: unknown): Promise<unknown>;
     };
     user?: { id: string; isGM: boolean; name: string } & AnyObject;
+    /**
+     * Connected users. `activeGM` is Foundry's designated single GM — the same
+     * user on every client — which is how a hook that fires everywhere can pick
+     * exactly one writer without any socket coordination. Undefined when no GM
+     * is connected.
+     */
+    users?: {
+      activeGM?: ({ id: string; isSelf: boolean } & AnyObject) | null;
+      get(id: string): AnyObject | undefined;
+    } & AnyObject;
     /** World actors. Undefined before the `setup` hook. */
     actors?: {
       contents: AnyObject[];

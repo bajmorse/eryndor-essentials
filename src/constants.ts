@@ -34,12 +34,46 @@ export const SETTINGS = {
    * pages: Record<actorId, number> }`.
    */
   hotbarPages: "hotbarPages",
+  /**
+   * Master switch for syncing the actor *portrait* to The Void (Unofficial)'s
+   * Hybrid Form transformation. World-scoped because only a GM can write actor
+   * documents, and because the artwork it changes is shared by the whole table.
+   * Not shown in Foundry's settings list — the Daggerheart Automation tab of
+   * {@link MENUS.daggerheartAutomationMenu} is its only editor.
+   */
+  voidHybridFormPortrait: "voidHybridFormPortrait",
+  /**
+   * Whether {@link SETTINGS.voidHybridFormPortrait} also rewrites the actor's
+   * *prototype token*, so a token dragged out mid-transformation arrives in
+   * Hybrid Form. World-scoped for the same reason, and separate because this one
+   * mutates persistent actor data rather than just the displayed portrait.
+   */
+  voidHybridFormPrototype: "voidHybridFormPrototype",
+  /**
+   * Repoint a portrait raised by Ginzzzu's Portraits & NPC Dock when the actor's
+   * artwork changes underneath it — something that module doesn't do for `img`.
+   * World-scoped for consistency with the other feature switches, even though the
+   * refresh itself is per-client DOM work.
+   */
+  refreshRaisedPortraits: "refreshRaisedPortraits",
 } as const;
 
 /** Settings-menu keys (buttons that open a config window instead of a control). */
 export const MENUS = {
+  /**
+   * Opens the tabbed module window on its General Features tab. GM only.
+   *
+   * Registered first, because Foundry lists a namespace's menus in registration
+   * order and this is the one a GM wants most often.
+   */
+  generalFeaturesMenu: "generalFeaturesMenu",
   /** Opens the actor→hotbar-page assignment window. GM only. */
   hotbarPagesMenu: "hotbarPagesMenu",
+  /**
+   * Opens the tabbed module window on its Daggerheart Automation tab. GM only —
+   * everything it edits is world-scoped.
+   */
+  daggerheartAutomationMenu: "daggerheartAutomationMenu",
 } as const;
 
 /** Document flag keys stored under `flags.eryndor-essentials.*`. */
@@ -50,12 +84,27 @@ export const FLAGS = {
    * the token HUD.
    */
   invisibleToPlayers: "invisibleToPlayers",
+  /**
+   * What an actor's portrait (and prototype token art) looked like *before* The
+   * Void put it into Hybrid Form: `{ img, proto }`. Present only while
+   * transformed — its absence is how we know there is nothing to revert.
+   *
+   * Deliberately stored on the Actor rather than read back off a token, so the
+   * revert still works when no token of that actor is placed on any scene.
+   */
+  hybridFormPortrait: "hybridFormPortrait",
 } as const;
 
 /** Foundry template paths (served from the module root at runtime). */
 export const TEMPLATES = {
   /** The actor→hotbar-page assignment window (settings menu). */
   hotbarPages: `modules/${MODULE_ID}/templates/hotbar-pages.hbs`,
+  /** Body of the (untabbed) General Features window. */
+  generalFeatures: `modules/${MODULE_ID}/templates/general-features.hbs`,
+  /** "The Void Automations" tab of the Daggerheart Automation window. */
+  automationVoid: `modules/${MODULE_ID}/templates/daggerheart-automation-void.hbs`,
+  /** Save/Cancel bar, shared by both windows. */
+  configFooter: `modules/${MODULE_ID}/templates/config-footer.hbs`,
 } as const;
 
 /** Our cross-client channel. Requires `"socket": true` in module.json. */

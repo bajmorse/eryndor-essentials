@@ -4,8 +4,9 @@
  * Rows are added and removed client-side and only written to the world setting
  * when the GM hits Save, so backing out of the window changes nothing.
  */
-import { MODULE_ID, TEMPLATES } from "../constants.js";
+import { MODULE_ID, SETTINGS, TEMPLATES } from "../constants.js";
 import {
+  featureEnabled,
   getConfig,
   isPage,
   NO_PAGE,
@@ -37,6 +38,12 @@ export class HotbarPagesConfig extends HandlebarsApplicationMixin(ApplicationV2)
   private rows: Row[] = [];
   private defaultPage: number = NO_PAGE;
   private applyToPlayers = false;
+  /**
+   * The feature's master switch. It lives in its own setting rather than in the
+   * assignments object, but it is edited here because the two are useless apart:
+   * assignments do nothing while it is off, and it does nothing without them.
+   */
+  private enabled = false;
 
   static DEFAULT_OPTIONS = {
     id: `${MODULE_ID}-hotbar-pages`,
@@ -65,6 +72,7 @@ export class HotbarPagesConfig extends HandlebarsApplicationMixin(ApplicationV2)
   constructor(options: AnyObject = {}) {
     super(options);
     const config = getConfig();
+    this.enabled = featureEnabled();
     this.defaultPage = config.defaultPage;
     this.applyToPlayers = config.applyToPlayers;
     // Sorted by actor name so the list reads the same way every time it opens —
@@ -136,6 +144,7 @@ export class HotbarPagesConfig extends HandlebarsApplicationMixin(ApplicationV2)
     return {
       rows,
       defaultOptions,
+      enabled: this.enabled,
       applyToPlayers: this.applyToPlayers,
       hasRows: rows.length > 0,
       hasActors: choices.length > 0,
@@ -194,6 +203,8 @@ export class HotbarPagesConfig extends HandlebarsApplicationMixin(ApplicationV2)
       root.querySelector<HTMLSelectElement>("select[name='defaultPage']")?.value,
     );
     this.defaultPage = isPage(defaultPage) ? defaultPage : NO_PAGE;
+    this.enabled =
+      root.querySelector<HTMLInputElement>("input[name='hotbarPageSwap']")?.checked ?? false;
     this.applyToPlayers =
       root.querySelector<HTMLInputElement>("input[name='applyToPlayers']")?.checked ?? false;
   }
@@ -229,7 +240,13 @@ export class HotbarPagesConfig extends HandlebarsApplicationMixin(ApplicationV2)
       pages,
     };
 
+    // Assignments first, then the switch: if the GM is turning the feature on in
+    // the same save, the assignments it reads are already the new ones.
     await saveConfig(config);
+    if (this.enabled !== featureEnabled()) {
+      await game.settings.set(MODULE_ID, SETTINGS.hotbarPageSwap, this.enabled);
+    }
+
     ui.notifications?.info(game.i18n.localize("EE.HotbarPages.Saved"));
     await this.close();
   }
