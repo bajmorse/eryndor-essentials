@@ -42,6 +42,7 @@ export class DaggerheartAutomationConfig extends ConfigWindow {
   protected override settingKeys = [
     SETTINGS.voidHybridFormPortrait,
     SETTINGS.voidHybridFormPrototype,
+    SETTINGS.voidHybridFormStressRevert,
   ] as const;
 
   async _prepareContext(options: AnyObject): Promise<AnyObject> {
@@ -56,6 +57,7 @@ export class DaggerheartAutomationConfig extends ConfigWindow {
       voidVersion: String(voidModule?.["version"] ?? ""),
       portrait: DaggerheartAutomationConfig.flag(SETTINGS.voidHybridFormPortrait),
       prototype: DaggerheartAutomationConfig.flag(SETTINGS.voidHybridFormPrototype),
+      stressRevert: DaggerheartAutomationConfig.flag(SETTINGS.voidHybridFormStressRevert),
     };
   }
 

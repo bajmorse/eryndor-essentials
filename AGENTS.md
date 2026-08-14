@@ -104,6 +104,71 @@ loads).
   is legitimately not what's shown. World setting `refreshRaisedPortraits` (default
   **on**). Portraits are **local DOM** built from a replicated flag, so unlike the
   Hybrid Form writer this runs on *every* client.
+- **Session Log** (`src/session-log/`) — records what happens at the table as
+  plain-text lines, meant to be combined with the Discord voice transcript
+  (Craig) afterward and fed to an LLM to draft session notes. No viewer yet —
+  entries just accumulate in the world-scoped `sessionLogEntries` array setting.
+  "Session" isn't tracked at write time — `groupIntoSessions` splits the flat
+  entry list wherever the gap between two consecutive entries exceeds
+  `SESSION_GAP_MS` (12 hours), not by calendar day, so a session that runs past
+  midnight (or survives a server restart mid-session) doesn't get split; each
+  resulting session is labeled with its first entry's local calendar date.
+  Master switch `sessionLogEnabled`, plus one on-by-default category switch each
+  for `rolls`, `resources`, `status`, `combat`, `scenes`, `flags`
+  (`session-log-store.ts`'s `CATEGORY_SETTING_KEYS`), edited in the
+  `sessionLogMenu` window. All writing goes through `recordSessionLogEvent`,
+  which is the only place that checks both switches and picks the one client
+  that persists (`utils/is-writer.ts`'s `isWriter`, `activeGM` — extracted out
+  of `void-shared.ts`, which re-exports it so its own call sites didn't need to
+  change). Event sources (`session-log-events.ts`):
+  - *Rolls*: `createChatMessage`, filtered to Daggerheart's `dualityRoll` /
+    `fateRoll` / `adversaryRoll` message types, reading `message.rolls[0]`'s
+    `.total` / `.totalLabel` ("Hope" / "Fear" / "Critical Success" /
+    "Guaranteed Critical Success"). Deliberately doesn't resolve hit/miss or a
+    target — not a roll property, and the resources line below tells that part
+    of the story. Damage/healing *roll* messages are skipped in favor of what
+    was actually applied. **Verified against the Daggerheart system v2.7.2
+    bundle** (`build/daggerheart.js`, searched for `messageType` and
+    `getHooks`) — re-check there if this stops matching after a system update.
+  - *Resources*: `preUpdateActor` snapshots
+    `system.resources.{hitPoints,stress,armor,hope}`, `updateActor` diffs
+    against it. Deliberately **not** built on Daggerheart's own
+    `daggerheart.postTakeDamage`/`postTakeHealing` hooks — those are
+    function-local `Hooks.call`s inside `Actor#takeDamage`/`takeHealing`, so
+    they only fire on whichever client called the method (e.g. a player
+    self-marking their own Hit Points), never broadcast the way `updateActor`
+    is. GM Fear is a world-level pool, not a per-actor resource, and its
+    storage in the installed v2.7.2 system couldn't be pinned down from the
+    minified bundle — out of scope for now. "Down" (Hit Points fully marked) is
+    logged under `status` off the same snapshot.
+  - *Status*: `createActiveEffect`/`deleteActiveEffect`, actor resolved via
+    `utils/actor-of-effect.ts` (extracted out of `void-hybrid-form.ts`, same
+    "usually on the item, walk up one level" logic). Logs every effect
+    gained/lost, not just conditions — can get chatty; that's what its category
+    toggle is for.
+  - *Combat*: Daggerheart's own unprefixed `combatStart` hook
+    (`Hooks.callAll("combatStart", combat)`) for the start — stronger signal
+    than "a Combat document was created." `deleteCombat` for the end, skipped
+    if the round never advanced past 0.
+  - *Scenes*: `updateScene` filtered to `changes.active === true` — a GM
+    *activating* a scene, not a per-client view change.
+  - *Flags*: `session-log-flag-button.ts` prepends a button to Foundry's
+    `#chat-controls` bar (`renderChatLog`) opening a `DialogV2.prompt` for
+    optional free text. GM-only; shown only once master + the `flags` category
+    are both on.
+  Export to a Journal Entry (`session-log-export.ts`): one JournalEntry named
+  "Session Logs", one page per session named by its date, plain-text content
+  built with `escapeHtml` since entry text can embed player/GM-authored names.
+  Re-exporting a session updates its existing page rather than duplicating it.
+  Two triggers: the Session Log window's "Export Current Log" button always
+  exports whatever `groupIntoSessions` puts last (finished or still in
+  progress), and `sessionLogEntries`'s `onChange` (wired in `settings.ts`) calls
+  `checkForSessionBoundary` on every change — narrowed to the GM's own client
+  via `isWriter`, it compares the two newest entries and, if the gap between
+  them crosses `session-log-store.ts`'s `isSessionBoundary` threshold, exports
+  everything before the new entry as the session that just ended. The
+  in-progress session is never auto-exported on its own; only its successor's
+  first entry triggers it (or a manual export).
 
 ## Build — read this first
 
@@ -140,6 +205,7 @@ src/
   tokens/              per-feature modules, each exports a register…() called from init
   apps/                ApplicationV2 windows not owned by a single feature
   integrations/        optional third-party module hookups (runtime-gated, never required)
+  session-log/         Session Log store, event sources, and the chat flag button
   utils/               small stateless helpers with no feature of their own (e.g. escape-html.ts)
   types/foundry.d.ts   minimal ambient Foundry type shim
 dist/module.js         build output (git-ignored)

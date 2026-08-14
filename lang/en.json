@@ -1,5 +1,5 @@
 {
-  "EE.ModuleTitle": "Eryndor: Essentials",
+  "EE.ModuleTitle": "Maiyalis: Utility Suite",
 
   "EE.Settings.HideDmTokens.Name": "Hide DM-dropped tokens from players",
   "EE.Settings.HideDmTokens.Hint": "When you (the GM) drop a token onto a scene, make it invisible to players while still letting them target and interact with it. Toggle any single token from its HUD with the eye icon.",
@@ -58,6 +58,9 @@
   "EE.Settings.VoidHybridFormPrototype.Name": "Also transform the prototype token",
   "EE.Settings.VoidHybridFormPrototype.Hint": "Additionally rewrite the character's prototype token, so a token dragged onto a scene mid-transformation arrives in Hybrid Form. Off by default: unlike the portrait, this changes saved character data.",
 
+  "EE.Settings.VoidHybridFormStressRevert.Name": "End Hybrid Form when Stress is full",
+  "EE.Settings.VoidHybridFormStressRevert.Hint": "When an Order of the Lycan character's Stress reaches its maximum while transformed, automatically revert them to human form, the same way clicking the wolf button would. Complements The Void's own rule that gaining Hope while transformed also marks Stress, which it never reverts the form for.",
+
   "EE.Config.Save": "Save",
   "EE.Config.Cancel": "Cancel",
   "EE.Config.Saved": "Settings saved.",
@@ -71,5 +74,49 @@
   "EE.Automation.Tabs.Void": "The Void Automations",
   "EE.Automation.HybridFormLegend": "Hybrid Form",
   "EE.Automation.VoidFound": "The Void (Unofficial) is active",
-  "EE.Automation.VoidMissing": "The Void (Unofficial) is not installed or not enabled. These options will do nothing until it is."
+  "EE.Automation.VoidMissing": "The Void (Unofficial) is not installed or not enabled. These options will do nothing until it is.",
+
+  "EE.Settings.SessionLogMenu.Name": "Session Log",
+  "EE.Settings.SessionLogMenu.Label": "Configure Log",
+  "EE.Settings.SessionLogMenu.Hint": "Keep a running log of what happens during the session, for combining with the Discord voice transcript afterward to draft session notes.",
+
+  "EE.Settings.SessionLogEnabled.Name": "Enable Session Log",
+  "EE.Settings.SessionLogEnabled.Hint": "Start recording notable session events to the log. Off by default.",
+
+  "EE.Settings.SessionLogRolls.Name": "Log dice rolls",
+  "EE.Settings.SessionLogRolls.Hint": "Record each Duality/reaction roll's result — the total and whether it came up Hope, Fear, or a Critical Success.",
+
+  "EE.Settings.SessionLogResources.Name": "Log resource changes",
+  "EE.Settings.SessionLogResources.Hint": "Record Hit Point, Stress, Armor, and Hope changes as they happen.",
+
+  "EE.Settings.SessionLogStatus.Name": "Log status changes",
+  "EE.Settings.SessionLogStatus.Hint": "Record conditions and other effects gained or lost, and when a character goes down.",
+
+  "EE.Settings.SessionLogCombat.Name": "Log combat",
+  "EE.Settings.SessionLogCombat.Hint": "Record when combat begins and ends.",
+
+  "EE.Settings.SessionLogScenes.Name": "Log scene changes",
+  "EE.Settings.SessionLogScenes.Hint": "Record when you activate a different scene.",
+
+  "EE.Settings.SessionLogFlags.Name": "Log GM flags",
+  "EE.Settings.SessionLogFlags.Hint": "Record moments you flag manually from the chat log button.",
+
+  "EE.SessionLog.Title": "Session Log",
+  "EE.SessionLog.GeneralLegend": "General",
+  "EE.SessionLog.CategoriesLegend": "What to Log",
+  "EE.SessionLog.ExportLegend": "Export",
+
+  "EE.SessionLog.UnknownActor": "Someone",
+  "EE.SessionLog.RollFallbackTitle": "a roll",
+
+  "EE.SessionLog.ExportButton": "Export Current Log to Journal",
+  "EE.SessionLog.ExportHint": "Export the most recent session's entries to a page in the \"Session Logs\" journal. Completed sessions are also exported automatically the next time something is logged after a 12-hour gap.",
+  "EE.SessionLog.ExportEmpty": "There's nothing in the Session Log to export yet.",
+  "EE.SessionLog.Exported": "Session exported to the \"Session Logs\" journal.",
+
+  "EE.SessionLog.FlagButton": "Flag this moment for the session log",
+  "EE.SessionLog.FlagPromptTitle": "Flag This Moment",
+  "EE.SessionLog.FlagPromptLabel": "What's happening? (optional)",
+  "EE.SessionLog.FlagPromptSubmit": "Flag It",
+  "EE.SessionLog.Flagged": "Moment flagged."
 }

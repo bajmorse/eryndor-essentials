@@ -125,7 +125,19 @@ declare global {
   /** Synchronous UUID resolution. Returns null for anything not yet loaded. */
   function fromUuidSync(uuid: string): AnyObject | null;
 
+  /** Chat log entries. Only the members this module touches. */
+  const ChatMessage: {
+    create(data: AnyObject): Promise<AnyObject>;
+    getSpeaker(data: AnyObject): AnyObject;
+  };
+
+  /** World journal entries. Only the members this module touches. */
+  const JournalEntry: {
+    create(data: AnyObject): Promise<AnyObject | undefined>;
+  };
+
   const CONFIG: AnyObject;
+  const CONST: AnyObject;
   const ui: AnyObject & {
     notifications?: { info(m: string): void; warn(m: string): void; error(m: string): void };
     /** The macro bar. Foundry supports exactly 5 pages; `changePage` throws outside 1–5. */

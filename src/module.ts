@@ -1,5 +1,5 @@
 /**
- * Eryndor: Essentials — module entry point.
+ * Maiyalis: Utility Suite — module entry point.
  *
  * Wires the module into FoundryVTT's lifecycle hooks. Feature logic lives in
  * sibling modules under `src/`; this file only bootstraps.
@@ -8,6 +8,9 @@ import { LOG_PREFIX, TEMPLATES } from "./constants.js";
 import { registerHotbarPages } from "./hotbar/hotbar-pages.js";
 import { registerGinzzzuPortraits } from "./integrations/ginzzzu-portraits.js";
 import { registerVoidHybridForm } from "./integrations/void-hybrid-form.js";
+import { registerVoidHybridFormStressEnd } from "./integrations/void-hybrid-form-stress.js";
+import { registerSessionLog } from "./session-log/session-log-events.js";
+import { registerSessionLogFlagButton } from "./session-log/session-log-flag-button.js";
 import { registerSettings } from "./settings.js";
 import { registerDragAnimation } from "./tokens/drag-animation.js";
 import { registerInvisibleTokens } from "./tokens/invisible-tokens.js";
@@ -18,8 +21,11 @@ Hooks.once("init", async () => {
   registerInvisibleTokens();
   registerDragAnimation();
   registerHotbarPages();
+  registerSessionLog();
+  registerSessionLogFlagButton();
   // Third-party integrations: each hooks nothing unless its module is active.
   registerVoidHybridForm();
+  registerVoidHybridFormStressEnd();
   registerGinzzzuPortraits();
   await foundry.applications.handlebars.loadTemplates(Object.values(TEMPLATES));
 });

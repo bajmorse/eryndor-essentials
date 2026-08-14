@@ -99,8 +99,10 @@ export class ConfigWindow extends HandlebarsApplicationMixin(ApplicationV2) {
 
       const el = target?.closest?.("[data-ee]") as HTMLElement | null;
       if (!el || !root.contains(el)) return;
-      if (el.dataset["ee"] === "save") void this.onSave();
-      else if (el.dataset["ee"] === "cancel") void this.close();
+      const action = el.dataset["ee"];
+      if (action === "save") void this.onSave();
+      else if (action === "cancel") void this.close();
+      else if (action) this.onAction(action, el);
     });
   }
 
@@ -109,6 +111,13 @@ export class ConfigWindow extends HandlebarsApplicationMixin(ApplicationV2) {
    * render and on every input change. Does nothing unless a subclass needs it.
    */
   protected refreshControls(_root: HTMLElement): void {}
+
+  /**
+   * Handle a `data-ee` click this base class doesn't already own (i.e. anything
+   * besides `save`/`cancel`/`tab`). No-op unless a subclass needs one — see
+   * `SessionLogConfig`'s `export` button.
+   */
+  protected onAction(_action: string, _element: HTMLElement): void {}
 
   /**
    * Persist {@link settingKeys}. In a tabbed window inactive tabs are hidden with

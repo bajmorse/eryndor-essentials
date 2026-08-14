@@ -1,4 +1,4 @@
-/* Eryndor: Essentials — module styles.
+/* Maiyalis: Utility Suite — module styles.
  *
  * Foundry live-applies changes to this file with no page refresh while a world
  * is running. Add feature styles below as they are built. */
@@ -55,7 +55,11 @@
 
 /* Tab visibility is entirely core's: `.tab[data-tab]:not(.active)` hides, and the
  * `standard-form` class on the window supplies `.tab.active { display: flex }`.
- * Nothing here should re-implement that. */
+ * Nothing here should re-implement that. This just adds breathing room between
+ * the tab nav and the tab's own content, which core leaves flush. */
+.ee-config .tab {
+  padding-top: 0.5rem;
+}
 
 /* An untabbed window has no `.tab` to inherit that column layout from, and its
  * part must render one root element — so the wrapper carries it instead. */
@@ -76,4 +80,16 @@
 
 .ee-config .ee-status-warn {
   color: var(--color-level-warning, #cc7722);
+}
+
+/* --- Session Log flag button ------------------------------------------------ */
+
+/* Injected into Foundry's #chat-controls bar (see session-log-flag-button.ts).
+ * No core class name there is one we're confident is stable across versions, so
+ * this is sized by hand rather than borrowed. */
+.ee-session-log-flag {
+  flex: 0 0 auto;
+  width: 2rem;
+  padding: 0;
+  line-height: 1;
 }

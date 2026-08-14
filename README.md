@@ -1,4 +1,4 @@
-# Eryndor: Essentials
+# Maiyalis: Utility Suite
 
 Essential quality-of-life tools for the Eryndor campaign in Foundry VTT v14.
 
@@ -12,7 +12,7 @@ Essential quality-of-life tools for the Eryndor campaign in Foundry VTT v14.
   drag-and-drop is affected; keyboard movement still animates.
 
 Both are world settings, configured under *Settings → Configure Settings →
-Eryndor: Essentials*.
+Maiyalis: Utility Suite*.
 
 ## Status
 
@@ -24,7 +24,7 @@ Built with a TypeScript + Vite toolchain (run in Docker); see
 **From manifest URL**
 
 ```
-https://github.com/brenton/eryndor-essentials/releases/latest/download/module.json
+https://github.com/maiyalis-modules/foundry-utility-suite/releases/latest/download/module.json
 ```
 
 **For local development**
@@ -36,7 +36,7 @@ keeps the repo in place:
 ```powershell
 New-Item -ItemType Junction `
   -Path "$env:LOCALAPPDATA\FoundryVTT\Data\modules\eryndor-essentials" `
-  -Target "d:\Foundry\eryndor-essentials"
+  -Target "d:\Foundry\foundry-utility-suite"
 ```
 
 ## Building
@@ -67,7 +67,7 @@ TypeScript change, **refresh the browser (F5)** to load it.
 ## Layout
 
 ```
-eryndor-essentials/
+foundry-utility-suite/
   module.json            # manifest (esmodules -> dist/module.js)
   src/                   # TypeScript source (compiled by Vite)
     module.ts            #   entry point (init / ready hooks)

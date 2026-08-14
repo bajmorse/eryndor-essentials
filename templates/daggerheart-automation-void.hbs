@@ -36,6 +36,15 @@
       </div>
       <p class="hint">{{localize "EE.Settings.VoidHybridFormPrototype.Hint"}}</p>
     </div>
+
+    <div class="form-group">
+      <label for="ee-void-stress-revert">{{localize "EE.Settings.VoidHybridFormStressRevert.Name"}}</label>
+      <div class="form-fields">
+        <input type="checkbox" id="ee-void-stress-revert" name="voidHybridFormStressRevert"
+               {{#if stressRevert}}checked{{/if}}>
+      </div>
+      <p class="hint">{{localize "EE.Settings.VoidHybridFormStressRevert.Hint"}}</p>
+    </div>
   </fieldset>
 
 </section>

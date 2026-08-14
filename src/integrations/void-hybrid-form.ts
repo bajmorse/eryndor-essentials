@@ -19,37 +19,34 @@
  * off The Void's private `hybridFormAppearance` flag (which only its sheet button
  * ever creates, so the ability and the status bar did nothing) and then off the
  * effect *names* (which are content in your world and may not match). Both were
- * guesses about state The Void already answers authoritatively:
- * `isOrderOfTheLycan` and `isInHybridForm` are exported on `window.Void`.
+ * guesses about state The Void already answers authoritatively — see
+ * `void-shared.ts` for how `isOrderOfTheLycan`/`isInHybridForm` are resolved
+ * (today, that's still a name scan; `window.Void` doesn't expose either yet).
  *
  * A short debounce lets a burst of effect changes settle into one decision, and
  * gives The Void time to finish applying token textures — which is where we would
  * rather read the artwork from.
  */
 import { FLAGS, LOG_PREFIX, MODULE_ID, SETTINGS } from "../constants.js";
+import { actorOfEffect } from "../utils/actor-of-effect.js";
+import {
+  findFormEffects,
+  isInHybridForm,
+  isLycan,
+  isWriter,
+  voidActive,
+  voidApi,
+  VOID,
+} from "./void-shared.js";
 
-/* -------------------------------------------------------------------------- */
-/*  The Void (Unofficial). Verified against v1.2.9.                            */
-/*                                                                             */
-/*  `window.Void` is its public surface (module.js assigns every feature export */
-/*  onto it). The rest of this block is internal detail used only as a fallback */
-/*  — if Hybrid Form stops syncing after an update, re-read its                 */
-/*  `scripts/hybrid-form.js` and fix the strings HERE.                          */
-/* -------------------------------------------------------------------------- */
-const VOID = {
-  /** Its module id, as registered with Foundry. */
-  moduleId: "the-void-unofficial",
-  /** Effect names, used only if `window.Void.isInHybridForm` is unavailable. */
-  formEffectNames: ["Hybrid Form", "Hybrid Form - Feral", "Hybrid Form - Apex Hunter"],
-  /**
-   * Its **token** artwork, authored by hand in the Hybrid Form item's description
-   * as `Set Token Image with {{{path/to/image.webp}}}`. Used only as a fallback:
-   * token art and portrait art are frequently different files, and where they are
-   * the same file this resolves to the *untransformed* portrait — which is exactly
-   * the bug that made the sync silently do nothing.
-   */
-  tokenImageMarker: /Set Token Image with\s*\{\{\{(.+?)\}\}\}/i,
-} as const;
+/**
+ * The Void's **token** artwork, authored by hand in the Hybrid Form item's
+ * description as `Set Token Image with {{{path/to/image.webp}}}`. Used only as a
+ * fallback: token art and portrait art are frequently different files, and where
+ * they are the same file this resolves to the *untransformed* portrait — which is
+ * exactly the bug that made the sync silently do nothing. Verified against v1.2.9.
+ */
+const TOKEN_IMAGE_MARKER = /Set Token Image with\s*\{\{\{(.+?)\}\}\}/i;
 
 /**
  * Our own marker, for the portrait specifically. Written in the Hybrid Form
@@ -65,12 +62,6 @@ const VOID = {
  * `lastIndex` state between calls.
  */
 const PORTRAIT_MARKER = /Set Portrait Image with\s*\{\{\{(.+?)\}\}\}/i;
-
-/** The two questions we ask The Void, both exported on `window.Void`. */
-interface VoidApi {
-  isOrderOfTheLycan(actor: AnyObject): boolean;
-  isInHybridForm(actor: AnyObject): boolean;
-}
 
 /**
  * Wait this long after an effect changes before deciding anything.
@@ -91,10 +82,6 @@ interface PortraitSnapshot {
 /*  Gates                                                                      */
 /* -------------------------------------------------------------------------- */
 
-function voidActive(): boolean {
-  return game.modules.get(VOID.moduleId)?.active === true;
-}
-
 function featureEnabled(): boolean {
   return game.settings.get(MODULE_ID, SETTINGS.voidHybridFormPortrait) === true;
 }
@@ -103,88 +90,9 @@ function syncPrototype(): boolean {
   return game.settings.get(MODULE_ID, SETTINGS.voidHybridFormPrototype) === true;
 }
 
-/**
- * Whether *this* client performs the write. Document hooks fire everywhere, but a
- * transformation is one logical event — `activeGM` is Foundry's designated single
- * GM, the same user on every client, so this is race-free without any socket work.
- */
-function isWriter(): boolean {
-  return game.users?.activeGM?.isSelf === true;
-}
-
-/** The Void's public API, or `null` if this build doesn't expose it. */
-function voidApi(): VoidApi | null {
-  const api = (globalThis as { Void?: Partial<VoidApi> }).Void;
-  return typeof api?.isInHybridForm === "function" ? (api as VoidApi) : null;
-}
-
 /* -------------------------------------------------------------------------- */
 /*  Reading the form state                                                     */
 /* -------------------------------------------------------------------------- */
-
-/**
- * The actor an ActiveEffect belongs to, or `null`.
- *
- * A Hybrid Form effect normally lives on the subclass *item* and transfers, so
- * `effect.parent` is an Item and the actor is one level further up. It can also
- * sit directly on the actor, which is what the Effects tab produces.
- */
-function actorOfEffect(effect: AnyObject | null | undefined): AnyObject | null {
-  const parent = effect?.["parent"];
-  if (!parent) return null;
-  if (parent.documentName === "Actor") return parent;
-  if (parent.documentName === "Item" && parent.parent?.documentName === "Actor") {
-    return parent.parent;
-  }
-  return null;
-}
-
-/** Could this actor possibly be in Hybrid Form? Cheap filter before doing work. */
-function isLycan(actor: AnyObject): boolean {
-  const api = voidApi();
-  if (typeof api?.isOrderOfTheLycan === "function") {
-    try {
-      return api.isOrderOfTheLycan(actor) === true;
-    } catch {
-      /* fall through to the name scan */
-    }
-  }
-  return findFormEffects(actor).length > 0;
-}
-
-/** Every effect matching The Void's names, across the actor and its items. */
-function findFormEffects(actor: AnyObject): AnyObject[] {
-  const names = VOID.formEffectNames as readonly string[];
-  const found: AnyObject[] = [];
-  const collections = [
-    actor["effects"],
-    ...((actor["items"] ?? []) as AnyObject[]).map((item) => item["effects"]),
-  ];
-  for (const collection of collections) {
-    for (const effect of (collection ?? []) as Iterable<AnyObject>) {
-      if (names.includes(String(effect?.["name"] ?? ""))) found.push(effect);
-    }
-  }
-  return found;
-}
-
-/**
- * Is this actor transformed right now?
- *
- * Delegated to The Void wherever possible so we can never disagree with it. The
- * fallback mirrors what its `isInHybridForm` does — some matching effect enabled.
- */
-function isInHybridForm(actor: AnyObject): boolean {
-  const api = voidApi();
-  if (api) {
-    try {
-      return api.isInHybridForm(actor) === true;
-    } catch {
-      /* fall through to the name scan */
-    }
-  }
-  return findFormEffects(actor).some((effect) => effect["disabled"] !== true);
-}
 
 /** The enabled Hybrid Form effect, if any — the one that says which tier is active. */
 function enabledFormEffect(actor: AnyObject): AnyObject | null {
@@ -220,13 +128,13 @@ function resolveImage(actor: AnyObject): string | null {
   //    — the same item it reads itself, rather than whichever item we hit first.
   const owner = enabledFormEffect(actor)?.["parent"];
   if (owner?.documentName === "Item") {
-    const path = markerIn(owner, VOID.tokenImageMarker);
+    const path = markerIn(owner, TOKEN_IMAGE_MARKER);
     if (path) return path;
   }
 
   // 3. Any item's token marker, for a setup where the effect sits on the actor.
   for (const item of items) {
-    const path = markerIn(item, VOID.tokenImageMarker);
+    const path = markerIn(item, TOKEN_IMAGE_MARKER);
     if (path) return path;
   }
 
