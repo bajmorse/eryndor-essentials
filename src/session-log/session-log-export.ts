@@ -2,11 +2,13 @@
  * Exporting the Session Log to a Journal Entry.
  *
  * One JournalEntry, **"Session Logs"** (found by name or created on first use),
- * with one page per session — named by the session's date, content a plain
- * chronological list of its entries. Re-exporting a session that already has a
- * page replaces that page's content instead of duplicating it, so both the
- * manual export button (`session-log-config.ts`) and the automatic export
- * below are safe to run more than once for the same session.
+ * filed in a journal-sidebar folder named after the module so our documents
+ * don't sit loose among the world's own, with one page per session — named by
+ * the session's date, content a plain chronological list of its entries.
+ * Re-exporting a session that already has a page replaces that page's content
+ * instead of duplicating it, so both the manual export button
+ * (`session-log-config.ts`) and the automatic export below are safe to run more
+ * than once for the same session.
  *
  * ## Automatic export
  * {@link checkForSessionBoundary} is wired to `sessionLogEntries`'s `onChange`
@@ -31,6 +33,7 @@ import {
 } from "./session-log-store.js";
 
 const JOURNAL_NAME = "Session Logs";
+const FOLDER_NAME = "Utility Suite";
 
 const CATEGORY_LABELS: Record<SessionLogCategory, string> = {
   rolls: "Rolls",
@@ -55,14 +58,49 @@ function formatSessionContent(session: SessionLogSession): string {
   return `<ul>\n${session.entries.map(formatEntry).join("\n")}\n</ul>`;
 }
 
-/** The "Session Logs" journal, found by name or created on first export. */
-async function findOrCreateJournal(): Promise<AnyObject> {
-  const existing = (game.journal as AnyObject | undefined)?.find(
-    (entry: AnyObject) => entry["name"] === JOURNAL_NAME,
+/**
+ * The journal-sidebar folder our exports live in, found by name or created.
+ *
+ * Returns null rather than throwing if it can't be had: a missing folder means
+ * the journal lands at the sidebar root, which is where it lived before this
+ * existed — not a reason to lose a session's log.
+ */
+async function findOrCreateFolder(): Promise<AnyObject | null> {
+  // Folders are per-document-type, so the name alone isn't unique — a world may
+  // well have an "Utility Suite" folder for Actors or Scenes too.
+  const existing = (game.folders as AnyObject | undefined)?.find(
+    (folder: AnyObject) => folder["name"] === FOLDER_NAME && folder["type"] === "JournalEntry",
   );
   if (existing) return existing as AnyObject;
 
-  const created = await JournalEntry.create({ name: JOURNAL_NAME });
+  try {
+    return (await Folder.create({ name: FOLDER_NAME, type: "JournalEntry" })) ?? null;
+  } catch (error: unknown) {
+    console.warn(`${LOG_PREFIX} Could not create the "${FOLDER_NAME}" journal folder.`, error);
+    return null;
+  }
+}
+
+/** The "Session Logs" journal, found by name or created on first export. */
+async function findOrCreateJournal(): Promise<AnyObject> {
+  const folder = await findOrCreateFolder();
+  const folderId = (folder?.["id"] as string | undefined) ?? null;
+
+  const existing = (game.journal as AnyObject | undefined)?.find(
+    (entry: AnyObject) => entry["name"] === JOURNAL_NAME,
+  );
+  if (existing) {
+    // Worlds that exported before the folder existed keep their journal at the
+    // sidebar root; file it away once. `folder` is a Folder document (or null),
+    // so a non-null one means the GM has already filed it somewhere of their
+    // own choosing — leave that alone.
+    if (folderId && existing["folder"] == null) {
+      await existing["update"]({ folder: folderId });
+    }
+    return existing as AnyObject;
+  }
+
+  const created = await JournalEntry.create({ name: JOURNAL_NAME, folder: folderId });
   if (!created) throw new Error(`Could not create the "${JOURNAL_NAME}" journal.`);
   return created;
 }

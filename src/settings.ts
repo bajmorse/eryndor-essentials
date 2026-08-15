@@ -13,9 +13,11 @@
  * the end rather than next to the settings they edit.
  */
 import { DaggerheartAutomationConfig } from "./apps/daggerheart-automation-config.js";
+import { DaggerheartUtilitiesConfig } from "./apps/daggerheart-utilities-config.js";
 import { GeneralFeaturesConfig } from "./apps/general-features-config.js";
 import { SessionLogConfig } from "./apps/session-log-config.js";
 import { MENUS, MODULE_ID, SETTINGS } from "./constants.js";
+import { DECK_CARD_TYPES, DEFAULT_DECK_LIMIT } from "./daggerheart/deck-limit.js";
 import { HotbarPagesConfig } from "./hotbar/hotbar-pages-app.js";
 import { DEFAULT_CONFIG, refreshHotbarPage } from "./hotbar/hotbar-pages.js";
 import { reconcileHybridFormPortraits } from "./integrations/void-hybrid-form.js";
@@ -136,6 +138,55 @@ export function registerSettings(): void {
     // effect on the next Stress change either way.
   });
 
+  /* ---- Daggerheart Utilities ---------------------------------------------- */
+
+  // World-scoped: a cap on the decks in play is a table-wide rule the GM sets,
+  // not a per-client preference. Off by default — it constrains something the
+  // system itself leaves open.
+  game.settings.register(MODULE_ID, SETTINGS.deckLimitEnabled, {
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+    // No onChange: nothing reads this yet — the enforcement is still to come.
+  });
+
+  // Only meaningful while the switch above is on, which is why the window greys
+  // it out otherwise. `min="1"` on the field is what keeps a saved value usable;
+  // a limit of zero is what turning the feature off already means.
+  game.settings.register(MODULE_ID, SETTINGS.deckLimitCount, {
+    scope: "world",
+    config: false,
+    type: Number,
+    default: DEFAULT_DECK_LIMIT,
+    // No onChange, for the same reason as the switch above.
+  });
+
+  // World-scoped like the rest: which actors are in the pool has to be one
+  // answer for the whole table, or two clients would count differently.
+  game.settings.register(MODULE_ID, SETTINGS.deckLimitPlayersOnly, {
+    scope: "world",
+    config: false,
+    type: Boolean,
+    // Off by default — the stricter reading, and the behavior that shipped
+    // first. Turning it on is how a GM keeps their own sheets out of the count.
+    default: false,
+    // No onChange: the pool is recomputed on every question, so the next one
+    // picks this up.
+  });
+
+  // One copies-per-deck setting per card type (see daggerheart/deck-limit.ts for
+  // what each counts). All shaped the same: world-scoped, defaulting to what a
+  // printed deck holds, and multiplied by the count above to get the real pool.
+  for (const cardType of DECK_CARD_TYPES) {
+    game.settings.register(MODULE_ID, cardType.settingKey, {
+      scope: "world",
+      config: false,
+      type: Number,
+      default: cardType.copies,
+    });
+  }
+
   /* ---- Session Log -------------------------------------------------------- */
 
   // World-scoped: the log is one shared record of the session, not a per-client
@@ -175,8 +226,14 @@ export function registerSettings(): void {
 
   /* ---- The buttons, in the order they should appear ----------------------- */
   //
-  // `restricted: true` on all four keeps them GM-only, which matters because
+  // `restricted: true` on all of them keeps them GM-only, which matters because
   // every setting above is world-scoped and only a GM can write one.
+  //
+  // Registration order is DOM order in Foundry's settings list, so the two
+  // groups below are kept contiguous: `settings-groups.ts` heads each run of
+  // buttons with a divider, and it can only do that if the run is unbroken.
+  // Moving a menu between groups means moving both its registration here and
+  // its entry in that file's SETTING_GROUPS.
 
   game.settings.registerMenu(MODULE_ID, MENUS.generalFeaturesMenu, {
     name: "EE.Settings.GeneralFeaturesMenu.Name",
@@ -196,6 +253,15 @@ export function registerSettings(): void {
     restricted: true,
   });
 
+  game.settings.registerMenu(MODULE_ID, MENUS.sessionLogMenu, {
+    name: "EE.Settings.SessionLogMenu.Name",
+    label: "EE.Settings.SessionLogMenu.Label",
+    hint: "EE.Settings.SessionLogMenu.Hint",
+    icon: "fa-solid fa-book",
+    type: SessionLogConfig,
+    restricted: true,
+  });
+
   game.settings.registerMenu(MODULE_ID, MENUS.daggerheartAutomationMenu, {
     name: "EE.Settings.DaggerheartAutomationMenu.Name",
     label: "EE.Settings.DaggerheartAutomationMenu.Label",
@@ -205,12 +271,12 @@ export function registerSettings(): void {
     restricted: true,
   });
 
-  game.settings.registerMenu(MODULE_ID, MENUS.sessionLogMenu, {
-    name: "EE.Settings.SessionLogMenu.Name",
-    label: "EE.Settings.SessionLogMenu.Label",
-    hint: "EE.Settings.SessionLogMenu.Hint",
-    icon: "fa-solid fa-book",
-    type: SessionLogConfig,
+  game.settings.registerMenu(MODULE_ID, MENUS.daggerheartUtilitiesMenu, {
+    name: "EE.Settings.DaggerheartUtilitiesMenu.Name",
+    label: "EE.Settings.DaggerheartUtilitiesMenu.Label",
+    hint: "EE.Settings.DaggerheartUtilitiesMenu.Hint",
+    icon: "fa-solid fa-layer-group",
+    type: DaggerheartUtilitiesConfig,
     restricted: true,
   });
 }

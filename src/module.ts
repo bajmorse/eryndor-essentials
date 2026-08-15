@@ -5,12 +5,15 @@
  * sibling modules under `src/`; this file only bootstraps.
  */
 import { LOG_PREFIX, TEMPLATES } from "./constants.js";
+import { registerDeckLimitBrowser } from "./daggerheart/deck-limit-browser.js";
+import { registerDeckLimitGuard } from "./daggerheart/deck-limit-guard.js";
 import { registerHotbarPages } from "./hotbar/hotbar-pages.js";
 import { registerGinzzzuPortraits } from "./integrations/ginzzzu-portraits.js";
 import { registerVoidHybridForm } from "./integrations/void-hybrid-form.js";
 import { registerVoidHybridFormStressEnd } from "./integrations/void-hybrid-form-stress.js";
 import { registerSessionLog } from "./session-log/session-log-events.js";
 import { registerSessionLogFlagButton } from "./session-log/session-log-flag-button.js";
+import { registerSettingsGroups } from "./settings-groups.js";
 import { registerSettings } from "./settings.js";
 import { registerDragAnimation } from "./tokens/drag-animation.js";
 import { registerInvisibleTokens } from "./tokens/invisible-tokens.js";
@@ -18,11 +21,14 @@ import { registerInvisibleTokens } from "./tokens/invisible-tokens.js";
 Hooks.once("init", async () => {
   console.log(`${LOG_PREFIX} Initializing.`);
   registerSettings();
+  registerSettingsGroups();
   registerInvisibleTokens();
   registerDragAnimation();
   registerHotbarPages();
   registerSessionLog();
   registerSessionLogFlagButton();
+  registerDeckLimitGuard();
+  registerDeckLimitBrowser();
   // Third-party integrations: each hooks nothing unless its module is active.
   registerVoidHybridForm();
   registerVoidHybridFormStressEnd();

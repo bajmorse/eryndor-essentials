@@ -68,6 +68,43 @@ export const SETTINGS = {
    */
   refreshRaisedPortraits: "refreshRaisedPortraits",
   /**
+   * Master switch for the Deck Limit — capping how many decks are in play at
+   * once. World-scoped: it's a table-wide rule the GM sets, not a per-client
+   * preference. Off by default, since it constrains something Daggerheart
+   * itself leaves open.
+   */
+  deckLimitEnabled: "deckLimitEnabled",
+  /**
+   * How many decks {@link SETTINGS.deckLimitEnabled} allows. Meaningless while
+   * that switch is off, which is why the window greys it out then. Defaults to
+   * 1 and is held to at least 1 on save — a limit of zero would mean "no decks
+   * at all", which is what turning the feature off is for.
+   */
+  deckLimitCount: "deckLimitCount",
+  /**
+   * Narrow the Deck Limit to characters that belong to a player, leaving the
+   * GM's own character actors — pregens, test sheets, retired PCs — outside the
+   * pool entirely: they neither consume copies nor get blocked. Off by default,
+   * where every `character` actor in the world draws from the decks.
+   */
+  deckLimitPlayersOnly: "deckLimitPlayersOnly",
+  /**
+   * Copies of each Domain card one deck contains. This and its four siblings
+   * below describe the *shape* of a deck rather than switching anything on, so
+   * they're edited in a collapsed section under the switch above. See
+   * `daggerheart/deck-limit.ts` for which Daggerheart Item type each one counts
+   * and what a printed deck holds by default.
+   */
+  deckCopiesDomain: "deckCopiesDomain",
+  /** Copies of each class card one deck contains. */
+  deckCopiesClass: "deckCopiesClass",
+  /** Copies of each subclass card one deck contains (one Item = all three tiers). */
+  deckCopiesSubclass: "deckCopiesSubclass",
+  /** Copies of each ancestry card one deck contains. */
+  deckCopiesAncestry: "deckCopiesAncestry",
+  /** Copies of each community card one deck contains — 2 in a printed deck. */
+  deckCopiesCommunity: "deckCopiesCommunity",
+  /**
    * Master switch for the Session Log — recording what happens at the table so
    * it can later be combined with the Discord voice transcript and fed to an LLM
    * to draft session notes. World-scoped: the log is one shared record for the
@@ -111,6 +148,12 @@ export const MENUS = {
    * everything it edits is world-scoped.
    */
   daggerheartAutomationMenu: "daggerheartAutomationMenu",
+  /**
+   * Opens the Daggerheart Utilities window — table rules we enforce ourselves,
+   * as opposed to the third-party hookups in
+   * {@link MENUS.daggerheartAutomationMenu}. GM only.
+   */
+  daggerheartUtilitiesMenu: "daggerheartUtilitiesMenu",
   /** Opens the Session Log window. GM only. */
   sessionLogMenu: "sessionLogMenu",
 } as const;
@@ -142,7 +185,9 @@ export const TEMPLATES = {
   generalFeatures: `modules/${MODULE_ID}/templates/general-features.hbs`,
   /** "The Void Automations" tab of the Daggerheart Automation window. */
   automationVoid: `modules/${MODULE_ID}/templates/daggerheart-automation-void.hbs`,
-  /** Save/Cancel bar, shared by both windows. */
+  /** Body of the (untabbed) Daggerheart Utilities window. */
+  daggerheartUtilities: `modules/${MODULE_ID}/templates/daggerheart-utilities.hbs`,
+  /** Save/Cancel bar, shared by every settings window here. */
   configFooter: `modules/${MODULE_ID}/templates/config-footer.hbs`,
   /** Body of the (untabbed) Session Log window. */
   sessionLog: `modules/${MODULE_ID}/templates/session-log.hbs`,

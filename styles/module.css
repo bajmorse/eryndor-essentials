@@ -82,6 +82,63 @@
   color: var(--color-level-warning, #cc7722);
 }
 
+/* --- Deck Limit: deck contents --------------------------------------------- */
+
+/* A native <details>, so "collapsed by default" is the element's own behavior
+ * rather than state we have to store and restore. Core styles <details> only in
+ * a couple of specific applications, none of them ours, so the summary row is
+ * dressed here. */
+.ee-config .ee-deck-copies > summary {
+  cursor: var(--cursor-pointer, pointer);
+  font-weight: bold;
+  padding: 0.25rem 0;
+}
+
+/* The fieldset is a flex column, but a <details> body is ordinary flow — so the
+ * rows inside it need their own column layout or they'd sit flush together. */
+.ee-config .ee-deck-copies-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.25rem 0 0 0.5rem;
+}
+
+/* --- Deck Limit: exhausted cards in the picker ------------------------------ */
+
+/* Dimmed, not hidden: the point of the house rule is that you can see the card
+ * exists and who has it. Applied to the system's shared ItemBrowser rows by
+ * daggerheart/deck-limit-browser.ts. */
+.compendium-browser .item-container.ee-deck-exhausted {
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+
+/* The row stays clickable so its description can still be expanded and its
+ * tooltip read — only dragging it onto a sheet is off the table. */
+.compendium-browser .item-container.ee-deck-exhausted .item-list-img,
+.compendium-browser .item-container.ee-deck-exhausted .item-list-name {
+  cursor: not-allowed;
+}
+
+/* --- Settings-list groupings ------------------------------------------------ */
+
+/* Headings injected between our buttons in Foundry's Configure Settings list by
+ * settings-groups.ts, which also creates this wrapper. The wrapper exists purely
+ * so a group can hide itself: core's search filter sets `hidden` on each
+ * non-matching `.form-group` and knows nothing about our headings, which would
+ * otherwise be left hovering over a gap. The layout restates what the category
+ * section (a `standard-form` flex column) applied to the rows before they were
+ * nested one level deeper — same core spacing token, so the rows don't shift. */
+#settings-config .ee-settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-16);
+}
+
+#settings-config .ee-settings-group:not(:has(> .form-group:not([hidden]))) {
+  display: none;
+}
+
 /* --- Session Log flag button ------------------------------------------------ */
 
 /* Injected into Foundry's #chat-controls bar (see session-log-flag-button.ts).

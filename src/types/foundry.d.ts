@@ -104,11 +104,19 @@ declare global {
      */
     users?: {
       activeGM?: ({ id: string; isSelf: boolean } & AnyObject) | null;
+      /** Every user, connected or not — `character` is their assigned actor. */
+      contents: AnyObject[];
       get(id: string): AnyObject | undefined;
     } & AnyObject;
     /** World actors. Undefined before the `setup` hook. */
     actors?: {
       contents: AnyObject[];
+      get(id: string): AnyObject | undefined;
+    } & AnyObject;
+    /** Every sidebar folder in the world, across all document types. */
+    folders?: {
+      contents: AnyObject[];
+      find(predicate: (folder: AnyObject) => boolean): AnyObject | undefined;
       get(id: string): AnyObject | undefined;
     } & AnyObject;
     /** Present once the socket connects; requires `"socket": true` in module.json. */
@@ -122,8 +130,13 @@ declare global {
     };
   } & AnyObject;
 
-  /** Synchronous UUID resolution. Returns null for anything not yet loaded. */
-  function fromUuidSync(uuid: string): AnyObject | null;
+  /**
+   * Synchronous UUID resolution. Returns null for anything not yet loaded, and
+   * a compendium's *index entry* (name/type, no system data) when the pack is
+   * indexed but the document isn't cached. Pass `{ strict: false }` to get null
+   * instead of a throw for a UUID that can only be resolved asynchronously.
+   */
+  function fromUuidSync(uuid: string, options?: AnyObject): AnyObject | null;
 
   /** Chat log entries. Only the members this module touches. */
   const ChatMessage: {
@@ -131,8 +144,24 @@ declare global {
     getSpeaker(data: AnyObject): AnyObject;
   };
 
+  /**
+   * Items, world or embedded. `create` takes `parent` (the owning Actor) and any
+   * other operation options in its second argument.
+   */
+  const Item: {
+    create(data: AnyObject, options?: AnyObject): Promise<AnyObject | undefined>;
+  };
+
   /** World journal entries. Only the members this module touches. */
   const JournalEntry: {
+    create(data: AnyObject): Promise<AnyObject | undefined>;
+  };
+
+  /**
+   * Sidebar folders. `type` is the document type the folder holds
+   * ("JournalEntry", "Actor", …) — folder names are only unique within a type.
+   */
+  const Folder: {
     create(data: AnyObject): Promise<AnyObject | undefined>;
   };
 

@@ -104,6 +104,52 @@ loads).
   is legitimately not what's shown. World setting `refreshRaisedPortraits` (default
   **on**). Portraits are **local DOM** built from a replicated flag, so unlike the
   Hybrid Form writer this runs on *every* client.
+- **Deck Limit** (`src/daggerheart/deck-limit.ts`, settings only so far) — models
+  the table's card pool as physical decks: a card in one character's hands isn't
+  available to anyone else. World settings `deckLimitEnabled` (off by default)
+  and `deckLimitCount` (default 1, minimum 1), plus one copies-per-deck count per
+  card type — `DECK_CARD_TYPES` maps each to a Daggerheart Item type
+  (`domainCard`, `class`, `subclass`, `ancestry`, `community`) and to what a
+  printed deck holds (1 each, **2 for `community`**). Pool for a type is
+  `copies × deckLimitCount`. A `subclass` is a single Item even though it's three
+  physical cards — Foundation/Specialization/Mastery are `foundationFeatures` /
+  `specializationFeatures` / `masteryFeatures` on it, gated by `featureState` —
+  so one copy is the whole set. Edited in the `daggerheartUtilitiesMenu` window
+  (`src/apps/daggerheart-utilities-config.ts`), the copies fields in a
+  collapsed-by-default `<details>`. That window is the home for Daggerheart
+  *table rules we implement ourselves*, as opposed to `daggerheartAutomationMenu`,
+  which is only third-party module hookups.
+  - *Counting* (`deck-pool.ts`): nothing is stored — the pool is recomputed from
+    the world on every question, so deleting a card (or its owner) returns it to
+    the deck with no ledger to drift. Only `character` actors hold cards; vault
+    and loadout both count. `drawsFromDeck()` is the single answer to "is this
+    sheet in the pool", used by the census *and* the guard so they can't disagree
+    — with `deckLimitPlayersOnly` on it narrows to actors a non-GM user has
+    assigned as their character or owns (GMs are skipped first, since a GM tests
+    as OWNER on everything). **Card identity is the subtle part.** A copy carries
+    `_stats.compendiumSource` (stamped by `ClientDocument.fromDropData`, and by
+    the system's own `createEmbeddedItemData`), but the compendium entry *is* the
+    source and so has none, and homebrew never gets one — so a `CardKey` holds
+    both a source UUID and a `type:name` fallback, and `sameCard` compares
+    whichever the two sides have in common. The fallback is blunt on purpose:
+    same-named homebrew cards count as one, renaming frees a copy.
+  - *Enforcement* (`deck-limit-guard.ts`): `preCreateItem` is the choke point —
+    every route onto a sheet (drag, character creation, level-up, other modules)
+    ends in an embedded Item create. `preCreate` hooks are **synchronous**, so
+    both paths cancel with `return false` and *then* open a dialog: a player gets
+    a dead end naming the holders, a GM gets a confirm whose yes re-issues the
+    create with the `eryndor-essentialsDeckLimitBypass` option, which the hook
+    waves through. The GM's card therefore lands a moment after the click.
+    Advisory, not a security boundary — it runs on the initiating client.
+  - *Greying* (`deck-limit-browser.ts`): the system keeps **one** shared
+    `ui.compendiumBrowser` (`ItemBrowser`) and re-opens it with presets for every
+    picking flow, so one pass covers them all. `loadItems()` fills `.item-list`
+    after the render hook and refills it on every search/filter/sort without
+    re-rendering the part — hence a `MutationObserver` (childList only; marking
+    rows touches attributes, so watching those would self-retrigger). Exhausted
+    rows are dimmed and `draggable="false"`, never removed.
+  - **Known gap**: items created *as part of* an Actor creation (duplicating or
+    importing a character) never fire `preCreateItem`, so they bypass the limit.
 - **Session Log** (`src/session-log/`) — records what happens at the table as
   plain-text lines, meant to be combined with the Discord voice transcript
   (Craig) afterward and fed to an LLM to draft session notes. No viewer yet —
@@ -157,9 +203,14 @@ loads).
     optional free text. GM-only; shown only once master + the `flags` category
     are both on.
   Export to a Journal Entry (`session-log-export.ts`): one JournalEntry named
-  "Session Logs", one page per session named by its date, plain-text content
+  "Session Logs", filed in a journal-sidebar folder named "Utility Suite" (found
+  by name *and* `type === "JournalEntry"` — folder names are only unique within a
+  document type; falls back to the sidebar root if the folder can't be created).
+  One page per session named by its date, plain-text content
   built with `escapeHtml` since entry text can embed player/GM-authored names.
   Re-exporting a session updates its existing page rather than duplicating it.
+  A journal left at the root by an older version is moved into the folder on the
+  next export, but one the GM has filed somewhere themselves is left alone.
   Two triggers: the Session Log window's "Export Current Log" button always
   exports whatever `groupIntoSessions` puts last (finished or still in
   progress), and `sessionLogEntries`'s `onChange` (wired in `settings.ts`) calls
@@ -202,8 +253,10 @@ src/
   module.ts            entry point — Hooks.once("init"|"ready")
   constants.ts         MODULE_ID, MODULE_TITLE, LOG_PREFIX, SETTINGS, FLAGS, TEMPLATES
   settings.ts          game.settings registration (called from init)
+  settings-groups.ts   headings between our buttons in core's settings list
   tokens/              per-feature modules, each exports a register…() called from init
   apps/                ApplicationV2 windows not owned by a single feature
+  daggerheart/         Daggerheart table rules we implement ourselves (cf. integrations/)
   integrations/        optional third-party module hookups (runtime-gated, never required)
   session-log/         Session Log store, event sources, and the chat flag button
   utils/               small stateless helpers with no feature of their own (e.g. escape-html.ts)
@@ -224,12 +277,17 @@ styles/ templates/ lang/ packs/   served from the repo root as-is
 - **Settings**: add a key to `SETTINGS` in `constants.ts`, register it in
   `settings.ts`, which is called during the `init` hook (settings can't be
   registered later). **Every setting is `config: false`** — the module's category
-  in Foundry's settings list holds only three buttons (General Features,
-  Per-Token Hotbars, Daggerheart Automation), each opening a window that owns its
-  group. A new setting belongs in one of those windows, not in the flat list; a
-  setting must never be both `config: true` and window-edited or the same control
-  appears twice. Menus render in registration order, which is why they are all
-  registered together at the end of `settings.ts`.
+  in Foundry's settings list holds only buttons (General Features, Per-Token
+  Hotbars, Daggerheart Automation, Daggerheart Utilities, Session Log), each
+  opening a window that owns its group. A new setting belongs in one of those
+  windows, not in the flat list; a setting must never be both `config: true` and
+  window-edited or the same control appears twice. Menus render in registration
+  order, which is why they are all registered together at the end of
+  `settings.ts`. A window lists its boolean keys in `settingKeys` and its numeric
+  ones in `numberSettingKeys`; `ConfigWindow#onSave` reads each back off the
+  input whose `name` is the key, holding numbers to the field's own `min`/`max`
+  since nothing here goes through form submission (which is what would otherwise
+  enforce them).
 - **Templates**: add the path to `TEMPLATES` in `constants.ts`; they're preloaded
   via `loadTemplates(Object.values(TEMPLATES))` in `init`.
 - **Types**: there's no full Foundry type package — `src/types/foundry.d.ts` is a
@@ -259,6 +317,18 @@ styles/ templates/ lang/ packs/   served from the repo root as-is
   class on the window supplies `.tab.active { display: flex }` — so don't write
   tab CSS. Settings that live in such a window register `config: false`, or they
   show up in both places.
+  Within that one flat category the buttons are grouped *presentationally* by
+  `src/settings-groups.ts`: on `renderSettingsConfig` it finds
+  `section[data-category="eryndor-essentials"]`, locates each menu's row by its
+  `button[data-key="<namespace>.<key>"]` (core's
+  `templates/settings/config-category.hbs`), and wraps each contiguous run in a
+  `div.ee-settings-group` headed by core's `h3.divider`. Two consequences:
+  registration order in `settings.ts` *is* DOM order, so a group's menus must be
+  registered contiguously; and core's search filter (`CategoryBrowser`'s
+  `_onSearchFilter`, debounced 200ms) sets `hidden` on non-matching `.form-group`
+  rows while knowing nothing about our headings — which is why the wrapper hides
+  itself via `:not(:has(> .form-group:not([hidden])))` in `styles/module.css`
+  rather than any JS trying to race that debounce.
 - **Hand-edited JSON** (`lang/`, `packs/`): save **UTF-8 without a BOM**. Foundry's
   loader chokes on a BOM, and PowerShell's `Set-Content -Encoding utf8` adds one —
   use `[System.IO.File]::WriteAllText(path, text, (New-Object System.Text.UTF8Encoding($false)))`.

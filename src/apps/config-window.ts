@@ -14,6 +14,26 @@ import { MODULE_ID } from "../constants.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
+/**
+ * Read a whole number out of a number input, held to the field's own `min`/`max`.
+ * A browser only enforces those when the form is *submitted*, and nothing here is
+ * (see `_onRender`), so an empty or out-of-range box would otherwise be saved as
+ * typed. An unusable value falls back to `fallback` — the setting's current
+ * value — so clearing the box and pressing Save changes nothing rather than
+ * storing `NaN`.
+ */
+function readNumber(input: HTMLInputElement, fallback: number): number {
+  const raw = Math.round(input.valueAsNumber);
+  let value = Number.isFinite(raw) ? raw : fallback;
+
+  const min = Number(input.min);
+  if (input.min !== "" && Number.isFinite(min)) value = Math.max(min, value);
+  const max = Number(input.max);
+  if (input.max !== "" && Number.isFinite(max)) value = Math.min(max, value);
+
+  return value;
+}
+
 export class ConfigWindow extends HandlebarsApplicationMixin(ApplicationV2) {
   // Typed loosely on purpose: Foundry merges DEFAULT_OPTIONS along the inheritance
   // chain (`ApplicationV2#_initializeApplicationOptions`), so a subclass supplies
@@ -43,9 +63,22 @@ export class ConfigWindow extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   protected settingKeys: readonly string[] = [];
 
+  /**
+   * Keys of the *numeric* settings this window edits, read back the same way
+   * from `<input type="number" name="…">`. Separate from {@link settingKeys}
+   * because the two are saved differently — see {@link onSave}.
+   */
+  protected numberSettingKeys: readonly string[] = [];
+
   /** Read a boolean setting without caring whether it has ever been written. */
   protected static flag(key: string): boolean {
     return game.settings.get(MODULE_ID, key) === true;
+  }
+
+  /** Read a numeric setting, falling back if it has somehow been left unset. */
+  protected static count(key: string, fallback: number): number {
+    const value = Number(game.settings.get(MODULE_ID, key));
+    return Number.isFinite(value) ? value : fallback;
   }
 
   /**
@@ -120,8 +153,9 @@ export class ConfigWindow extends HandlebarsApplicationMixin(ApplicationV2) {
   protected onAction(_action: string, _element: HTMLElement): void {}
 
   /**
-   * Persist {@link settingKeys}. In a tabbed window inactive tabs are hidden with
-   * CSS but still in the DOM, so one Save covers all of them.
+   * Persist {@link settingKeys} and {@link numberSettingKeys}. In a tabbed window
+   * inactive tabs are hidden with CSS but still in the DOM, so one Save covers
+   * all of them.
    *
    * Unchanged settings are skipped, because writing one fires its `onChange` —
    * there is no reason to refresh every token on the canvas just because someone
@@ -136,6 +170,15 @@ export class ConfigWindow extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!input) continue;
       if (input.checked === ConfigWindow.flag(key)) continue;
       await game.settings.set(MODULE_ID, key, input.checked);
+    }
+
+    for (const key of this.numberSettingKeys) {
+      const input = root.querySelector<HTMLInputElement>(`input[name='${key}']`);
+      if (!input) continue;
+      const current = ConfigWindow.count(key, 0);
+      const value = readNumber(input, current);
+      if (value === current) continue;
+      await game.settings.set(MODULE_ID, key, value);
     }
 
     ui.notifications?.info(game.i18n.localize("EE.Config.Saved"));

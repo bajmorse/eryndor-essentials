@@ -13,6 +13,9 @@
   "EE.Settings.RefreshRaisedPortraits.Name": "Refresh raised portraits on artwork change",
   "EE.Settings.RefreshRaisedPortraits.Hint": "When a character's portrait image changes while Ginzzzu's Portraits is showing it, update the raised portrait to match instead of leaving the old artwork on screen. Portraits with a custom image or an active emotion are left alone.",
 
+  "EE.SettingsList.GeneralHeading": "General",
+  "EE.SettingsList.DaggerheartHeading": "Daggerheart",
+
   "EE.Settings.GeneralFeaturesMenu.Name": "General Features",
   "EE.Settings.GeneralFeaturesMenu.Label": "Configure",
   "EE.Settings.GeneralFeaturesMenu.Hint": "Token visibility, drag movement, and keeping raised portraits in step with character artwork.",
@@ -76,6 +79,47 @@
   "EE.Automation.VoidFound": "The Void (Unofficial) is active",
   "EE.Automation.VoidMissing": "The Void (Unofficial) is not installed or not enabled. These options will do nothing until it is.",
 
+  "EE.Settings.DaggerheartUtilitiesMenu.Name": "Daggerheart Utilities",
+  "EE.Settings.DaggerheartUtilitiesMenu.Label": "Configure Utilities",
+  "EE.Settings.DaggerheartUtilitiesMenu.Hint": "Table rules for Daggerheart play, such as capping how many decks are in play at once.",
+
+  "EE.Settings.DeckLimitEnabled.Name": "Limit the number of decks",
+  "EE.Settings.DeckLimitEnabled.Hint": "Cap how many decks can be in play at once. Off by default — nothing is limited until you turn this on.",
+
+  "EE.Settings.DeckLimitCount.Name": "Number of decks",
+  "EE.Settings.DeckLimitCount.Hint": "How many decks the limit above allows. Minimum 1.",
+
+  "EE.Settings.DeckLimitPlayersOnly.Name": "Only limit player characters",
+  "EE.Settings.DeckLimitPlayersOnly.Hint": "Count and restrict only characters assigned to (or owned by) a player. Your own character sheets — pregens, test characters, retired PCs — stay out of the pool entirely: they don't use up copies, and they aren't blocked from taking any. Off by default, where every character in the world draws from the decks.",
+
+  "EE.Utilities.Title": "Daggerheart Utilities",
+  "EE.Utilities.DeckLimitLegend": "Deck Limit",
+
+  "EE.Utilities.DeckContentsSummary": "What's in a deck",
+  "EE.Utilities.DeckContentsHint": "Copies of each card a single deck contains, multiplied by the number of decks above to get the pool. The defaults match a printed Daggerheart deck — change them if your table proxies or homebrews extra cards. Zero means a deck holds none of that card type.",
+  "EE.Utilities.Copies.Domain": "Domain cards",
+  "EE.Utilities.Copies.Class": "Class cards",
+  "EE.Utilities.Copies.Subclass": "Subclass cards (Foundation, Specialization, Mastery)",
+  "EE.Utilities.Copies.Ancestry": "Ancestry cards",
+  "EE.Utilities.Copies.Community": "Community cards",
+
+  "EE.DeckLimit.HeldBy": "In play: {holders}.",
+  "EE.DeckLimit.HeldByNobody": "Nobody is holding it — the deck simply doesn't contain one.",
+
+  "EE.DeckLimit.BlockedTitle": "Card Unavailable",
+  "EE.DeckLimit.BlockedBody": "All {pool} copies of <strong>{name}</strong> are already in play, so there isn't one left to take.",
+  "EE.DeckLimit.BlockedAsk": "If you need it anyway, ask your GM — they can add it for you.",
+  "EE.DeckLimit.BlockedDismiss": "Understood",
+
+  "EE.DeckLimit.ExceedTitle": "Exceed the Deck Limit?",
+  "EE.DeckLimit.ExceedBody": "All {pool} copies of <strong>{name}</strong> are already in play. Adding this one puts more copies on the table than the decks hold.",
+  "EE.DeckLimit.ExceedHint": "You're the GM, so this is allowed — this is only a check that you meant it.",
+  "EE.DeckLimit.ExceedConfirm": "Add It Anyway",
+  "EE.DeckLimit.ExceedCancel": "Cancel",
+
+  "EE.DeckLimit.TooltipHeld": "Deck limit reached — in play: {holders}",
+  "EE.DeckLimit.TooltipNone": "Deck limit — the deck holds none of these",
+
   "EE.Settings.SessionLogMenu.Name": "Session Log",
   "EE.Settings.SessionLogMenu.Label": "Configure Log",
   "EE.Settings.SessionLogMenu.Hint": "Keep a running log of what happens during the session, for combining with the Discord voice transcript afterward to draft session notes.",
@@ -110,7 +154,7 @@
   "EE.SessionLog.RollFallbackTitle": "a roll",
 
   "EE.SessionLog.ExportButton": "Export Current Log to Journal",
-  "EE.SessionLog.ExportHint": "Export the most recent session's entries to a page in the \"Session Logs\" journal. Completed sessions are also exported automatically the next time something is logged after a 12-hour gap.",
+  "EE.SessionLog.ExportHint": "Export the most recent session's entries to a page in the \"Session Logs\" journal, in the \"Utility Suite\" folder. Completed sessions are also exported automatically the next time something is logged after a 12-hour gap.",
   "EE.SessionLog.ExportEmpty": "There's nothing in the Session Log to export yet.",
   "EE.SessionLog.Exported": "Session exported to the \"Session Logs\" journal.",
 
