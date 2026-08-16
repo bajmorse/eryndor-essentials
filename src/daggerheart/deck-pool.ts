@@ -1,26 +1,21 @@
 /**
- * Who is holding which cards — the bookkeeping behind the Deck Limit.
+ * Who is holding which cards — the census behind the Deck Limit.
  *
  * Nothing is stored. The pool is recomputed from the world every time it's
  * asked for, so a card returns to the deck the moment its Item is deleted (or
  * its owner is), with no ledger to drift out of step with reality.
  *
- * **Card identity** is the hard part: a card on a sheet is a *copy* of the
- * compendium entry, with its own id. Foundry stamps the source UUID onto a copy
- * as `_stats.compendiumSource` when it's dragged out of a compendium
- * (`ClientDocument.fromDropData`), which is the strong link — but only one side
- * of the comparison ever has it. The compendium entry *is* the source, so its
- * own `compendiumSource` is empty, and a homebrew card authored in the world
- * never gets one at all. So a card is described by a {@link CardKey} holding
- * both a source UUID (where one exists) and a type+name fallback, and
- * {@link sameCard} compares whichever the two have in common.
- *
- * The fallback is deliberately blunt: two different homebrew cards sharing a
- * name count as one card, and renaming a card frees its copy. Both beat the
- * alternative, where every copy is unique and the limit never binds at all.
+ * Two things take a card out of the deck: a copy sitting on a character sheet
+ * (counted here) and a copy claimed in someone's open wizard (`deck-holds.ts`).
+ * {@link availabilityOf} is where they meet. What makes two copies the same card
+ * lives in `deck-card-key.ts`.
  */
 import { MODULE_ID, SETTINGS } from "../constants.js";
-import { cardTypeFor, poolFor } from "./deck-limit.js";
+import { cardKeyOf, sameCard, type CardKey, type CardSource } from "./deck-card-key.js";
+import { holdsOn, type DeckHold } from "./deck-holds.js";
+import { poolFor } from "./deck-limit.js";
+
+export type { CardKey, CardSource } from "./deck-card-key.js";
 
 /** A character holding at least one copy of a card. */
 export interface CardHolder {
@@ -35,60 +30,21 @@ export interface CardAvailability {
   readonly pool: number;
   /** Copies currently on a character sheet. */
   readonly held: number;
-  /** Copies still in the deck. Never negative, even if the pool is over-drawn. */
-  readonly free: number;
   /** Who has the held copies, for the message that explains the block. */
   readonly holders: readonly CardHolder[];
-}
-
-/** Enough of an Item (or of pre-create Item data) to identify the card. */
-export interface CardSource {
-  readonly type?: string;
-  readonly name?: string;
-  readonly _stats?: { readonly compendiumSource?: string | null } | null;
-}
-
-/** The two ways one card can be recognized. See this file's header. */
-export interface CardKey {
-  /** The Daggerheart Item type, which also decides the pool. */
-  readonly itemType: string;
-  /** Source UUID, when this side of the comparison has one. */
-  readonly source: string | null;
-  /** `type:name`, lowercased — always present, used when sources can't be. */
-  readonly fallback: string;
-}
-
-/**
- * Describe a card. Null when it isn't a type the limit covers.
- *
- * `ownUuid` is for the entry as it sits *in* a compendium, where the document's
- * own UUID is what copies of it will point back to.
- */
-export function cardKeyOf(
-  source: CardSource | null | undefined,
-  ownUuid?: string | null,
-): CardKey | null {
-  const itemType = source?.type;
-  if (!source || !cardTypeFor(itemType)) return null;
-
-  const stamped = source._stats?.compendiumSource;
-  const uuid = ownUuid ?? (typeof stamped === "string" && stamped ? stamped : null);
-
-  return {
-    itemType: itemType as string,
-    source: uuid,
-    fallback: `${itemType}:${(source.name ?? "").trim().toLowerCase()}`,
-  };
-}
-
-/**
- * Are these the same card? Uses the source UUIDs when both sides have one, and
- * falls back to type+name otherwise — so a compendium entry still matches the
- * copies made from it, and two homebrew cards still match each other.
- */
-export function sameCard(a: CardKey, b: CardKey): boolean {
-  if (a.source && b.source) return a.source === b.source;
-  return a.fallback === b.fallback;
+  /**
+   * Copies claimed in someone's open wizard but not yet on a sheet. Counted
+   * against the pool like a held copy — the difference is only in what the
+   * player is told, since a hold can still evaporate.
+   */
+  readonly onHold: readonly DeckHold[];
+  /**
+   * Copies left once holds are ignored. Zero means the card is genuinely gone,
+   * as opposed to merely spoken for.
+   */
+  readonly freeIgnoringHolds: number;
+  /** Copies actually available to take. Never negative. */
+  readonly free: number;
 }
 
 /**
@@ -148,16 +104,34 @@ export function findHolders(key: CardKey): CardHolder[] {
 /**
  * How many copies of this card are left in the deck. Returns null when the card
  * isn't a type the limit covers — an unlimited thing, not an exhausted one.
+ *
+ * `holds` is passed in rather than gathered here so a caller checking many cards
+ * at once (the browser, marking a whole list) reads the world's holds once.
+ * `ignoreHoldsFrom` drops one user's own claims, which is what lets a wizard
+ * commit the cards it reserved.
  */
-export function availabilityOf(key: CardKey | null): CardAvailability | null {
+export function availabilityOf(
+  key: CardKey | null,
+  options: { holds?: readonly DeckHold[]; ignoreHoldsFrom?: string } = {},
+): CardAvailability | null {
   if (!key) return null;
   const pool = poolFor(key.itemType);
   if (pool === null) return null;
 
   const holders = findHolders(key);
   const held = holders.reduce((total, holder) => total + holder.count, 0);
+  const freeIgnoringHolds = Math.max(0, pool - held);
 
-  return { pool, held, free: Math.max(0, pool - held), holders };
+  const onHold = holdsOn(options.holds ?? [], key, options.ignoreHoldsFrom);
+
+  return {
+    pool,
+    held,
+    holders,
+    onHold,
+    freeIgnoringHolds,
+    free: Math.max(0, freeIgnoringHolds - onHold.length),
+  };
 }
 
 /** "Kaelen, Sera (×2)" — the holder list as it appears in a dialog or tooltip. */

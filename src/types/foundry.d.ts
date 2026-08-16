@@ -95,7 +95,18 @@ declare global {
       get(namespace: string, key: string): unknown;
       set(namespace: string, key: string, value: unknown): Promise<unknown>;
     };
-    user?: { id: string; isGM: boolean; name: string } & AnyObject;
+    /**
+     * The local user. `setFlag`/`unsetFlag` work here even for a player — a user
+     * may always update their own User document, and `flags` isn't restricted.
+     */
+    user?: {
+      id: string;
+      isGM: boolean;
+      name: string;
+      getFlag(scope: string, key: string): unknown;
+      setFlag(scope: string, key: string, value: unknown): Promise<AnyObject>;
+      unsetFlag(scope: string, key: string): Promise<AnyObject>;
+    } & AnyObject;
     /**
      * Connected users. `activeGM` is Foundry's designated single GM — the same
      * user on every client — which is how a hook that fires everywhere can pick

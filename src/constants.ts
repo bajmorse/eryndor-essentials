@@ -175,6 +175,17 @@ export const FLAGS = {
    * revert still works when no token of that actor is placed on any scene.
    */
   hybridFormPortrait: "hybridFormPortrait",
+  /**
+   * Cards a user has picked in an open character-creation or level-up wizard but
+   * not yet committed to a sheet — see `daggerheart/deck-holds.ts`. Stored on the
+   * **User**, not an Actor: a player can always write their own User document
+   * (`BaseUser.#canUpdate` lets `user.id === doc.id` through, and `flags` isn't a
+   * restricted field), so a reservation reaches the whole table with no GM relay.
+   *
+   * Shape: `{ [applicationId]: { actorName: string, cards: string[] } }`, where
+   * each card is the source UUID of a pending selection.
+   */
+  deckHolds: "deckHolds",
 } as const;
 
 /** Foundry template paths (served from the module root at runtime). */

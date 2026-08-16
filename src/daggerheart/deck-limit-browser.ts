@@ -20,16 +20,20 @@
  * `deck-limit-guard.ts` — nothing here is load-bearing, and if the system
  * restyles its browser the worst case is that the greying quietly stops.
  */
-import { LOG_PREFIX } from "../constants.js";
+import { LOG_PREFIX, MODULE_ID } from "../constants.js";
+import { cardKeyOf, type CardSource } from "./deck-card-key.js";
+import { collectHolds, describeHolds } from "./deck-holds.js";
 import { deckLimitActive } from "./deck-limit.js";
-import { availabilityOf, cardKeyOf, describeHolders, type CardSource } from "./deck-pool.js";
+import { availabilityOf, describeHolders } from "./deck-pool.js";
 
-/** Marks rows this module dimmed, so its tooltip is only removed by its owner. */
+/** Marks rows this module touched, so its tooltip is only removed by its owner. */
 const MARKER = "eeDeckExhausted";
 
 /** Dim (or un-dim) every row in one rendering of the list. */
 function markRows(list: HTMLElement): void {
   const active = deckLimitActive();
+  // Read the world's reservations once for the whole list, not once per row.
+  const holds = active ? collectHolds() : [];
 
   for (const row of list.querySelectorAll<HTMLElement>(".item-container[data-item-uuid]")) {
     const uuid = row.dataset["itemUuid"];
@@ -40,19 +44,29 @@ function markRows(list: HTMLElement): void {
     // would otherwise throw — a UUID pointing inside a compendium document — is
     // one we'd rather skip than crash the whole pass on.
     const entry = uuid ? (fromUuidSync(uuid, { strict: false }) as CardSource | null) : null;
-    const availability = active ? availabilityOf(cardKeyOf(entry, uuid)) : null;
-    const exhausted = availability !== null && availability.free <= 0;
+    const availability = active ? availabilityOf(cardKeyOf(entry, uuid), { holds }) : null;
 
-    row.classList.toggle("ee-deck-exhausted", exhausted);
+    // Three states, and the order matters: a card whose copies are genuinely on
+    // sheets is *gone*, even if someone also has it reserved. Only a card that
+    // would otherwise be free reads as merely spoken for.
+    const gone = availability !== null && availability.freeIgnoringHolds <= 0;
+    const reserved = !gone && availability !== null && availability.free <= 0;
 
-    if (exhausted) {
+    row.classList.toggle("ee-deck-exhausted", gone);
+    row.classList.toggle("ee-deck-on-hold", reserved);
+
+    if (gone || reserved) {
       row.dataset[MARKER] = "1";
       row.setAttribute("draggable", "false");
-      row.dataset["tooltip"] = availability.holders.length
-        ? game.i18n.format("EE.DeckLimit.TooltipHeld", {
-            holders: describeHolders(availability.holders),
-          })
-        : game.i18n.localize("EE.DeckLimit.TooltipNone");
+      row.dataset["tooltip"] = gone
+        ? availability.holders.length
+          ? game.i18n.format("EE.DeckLimit.TooltipHeld", {
+              holders: describeHolders(availability.holders),
+            })
+          : game.i18n.localize("EE.DeckLimit.TooltipNone")
+        : game.i18n.format("EE.DeckLimit.TooltipOnHold", {
+            holders: describeHolds(availability.onHold),
+          });
     } else if (row.dataset[MARKER]) {
       // Only undo what we did — the system may own tooltips on other rows.
       delete row.dataset[MARKER];
@@ -82,5 +96,14 @@ export function registerDeckLimitBrowser(): void {
     // childList only: marking rows touches attributes, so observing those too
     // would have each pass retrigger the next.
     new MutationObserver(() => markRows(list)).observe(list, { childList: true });
+  });
+
+  // Holds live in User flags, so someone else picking a card in their wizard
+  // arrives as a User update. Re-mark an open browser so "on hold" appears (and
+  // clears) while it's in front of you, rather than on next open.
+  Hooks.on("updateUser", (_user: AnyObject, changes: AnyObject) => {
+    if (!changes?.["flags"]?.[MODULE_ID]) return;
+    const list = (ui["compendiumBrowser"] as AnyObject)?.["element"]?.querySelector?.(".item-list");
+    if (list instanceof HTMLElement) markRows(list);
   });
 }

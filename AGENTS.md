@@ -133,6 +133,39 @@ loads).
     both a source UUID and a `type:name` fallback, and `sameCard` compares
     whichever the two sides have in common. The fallback is blunt on purpose:
     same-named homebrew cards count as one, renaming frees a copy.
+  - *Holds* (`deck-holds.ts`, `deck-limit-wizard.ts`): character creation and
+    level-up are wizards — cards are chosen minutes before any Item exists, and
+    tables level up simultaneously, so selections are published as **holds** that
+    count against the pool like a held copy but read differently in the UI.
+    Transport is a **User flag** (`FLAGS.deckHolds`), because a player may always
+    update their own User document (`BaseUser.#canUpdate` permits
+    `user.id === doc.id`; `flags` isn't restricted) and User documents replicate
+    to every client — so no socket protocol and no GM relay. Holds are cleared on
+    wizard close, on `ready` (`releaseOwnHolds`, mopping up after a crash), and
+    are ignored on read for users who aren't `active`, so a card can never be
+    stranded. Writes are serialized through one promise chain: the flag holds
+    *all* of a user's wizards, and these apps re-render fast enough
+    (`submitOnChange`) for two read-modify-writes to overlap. Selections are found
+    by **walking** `app.setup` (creation) / `app.levelup.toObject()` (level-up)
+    rather than by reading known paths — the paths are the system's business, the
+    convention is stabler. Two things about that walk are load-bearing, and
+    getting either wrong makes it silently find nothing:
+    - It reads `sourceUuid`/`uuid`/`itemUuid` by **property access, never
+      `Object.entries`**. Character creation assigns live Item *documents*
+      (`this.setup.class = item` in its `_onDrop`), and `uuid` on a Document is a
+      prototype getter, invisible to enumeration. Level-up stores plain
+      `{uuid, itemUuid}` objects. Property access reads both. `sourceUuid` is
+      preferred — it's the system's own getter, resolving a copy back through
+      `duplicateSource`/`compendiumSource` to the compendium entry.
+    - It stops at any node that names a card, and never descends into a Document
+      (`documentName` present), whose graph reaches the whole world.
+
+    `Actor.…` UUIDs are skipped (already-created cards, which the census counts),
+    as are cards already on the wizard's own actor — a level-up model is seeded
+    from previous level-ups, and reserving those would take a copy from everyone
+    else twice. Reading a hold resolves its UUID with `fromUuidSync`, which is
+    safe on any client: pack indexes are seeded from world data at load and
+    Item's `compendiumIndexFields` include `type` and `name`.
   - *Enforcement* (`deck-limit-guard.ts`): `preCreateItem` is the choke point —
     every route onto a sheet (drag, character creation, level-up, other modules)
     ends in an embedded Item create. `preCreate` hooks are **synchronous**, so
@@ -146,8 +179,12 @@ loads).
     picking flow, so one pass covers them all. `loadItems()` fills `.item-list`
     after the render hook and refills it on every search/filter/sort without
     re-rendering the part — hence a `MutationObserver` (childList only; marking
-    rows touches attributes, so watching those would self-retrigger). Exhausted
-    rows are dimmed and `draggable="false"`, never removed.
+    rows touches attributes, so watching those would self-retrigger), plus an
+    `updateUser` hook so someone else's hold appears while the browser is open.
+    Three states, checked in this order: **gone** (`freeIgnoringHolds <= 0`,
+    dimmed grey — copies are actually on sheets), **on hold** (`free <= 0`, amber
+    dashed outline — merely reserved), available. Both restricted states set
+    `draggable="false"`; nothing is ever removed from the list.
   - **Known gap**: items created *as part of* an Actor creation (duplicating or
     importing a character) never fire `preCreateItem`, so they bypass the limit.
 - **Session Log** (`src/session-log/`) — records what happens at the table as

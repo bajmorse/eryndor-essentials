@@ -104,6 +104,7 @@
   "EE.Utilities.Copies.Community": "Community cards",
 
   "EE.DeckLimit.HeldBy": "In play: {holders}.",
+  "EE.DeckLimit.OnHoldBy": "On hold: {holders} — picked but not yet confirmed.",
   "EE.DeckLimit.HeldByNobody": "Nobody is holding it — the deck simply doesn't contain one.",
 
   "EE.DeckLimit.BlockedTitle": "Card Unavailable",
@@ -119,6 +120,7 @@
 
   "EE.DeckLimit.TooltipHeld": "Deck limit reached — in play: {holders}",
   "EE.DeckLimit.TooltipNone": "Deck limit — the deck holds none of these",
+  "EE.DeckLimit.TooltipOnHold": "On hold by {holders} — picked in an open character creation or level-up, but not confirmed yet",
 
   "EE.Settings.SessionLogMenu.Name": "Session Log",
   "EE.Settings.SessionLogMenu.Label": "Configure Log",

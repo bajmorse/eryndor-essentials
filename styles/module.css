@@ -113,10 +113,22 @@
   filter: grayscale(1);
 }
 
+/* Reserved, not gone: someone has this card selected in an open character
+ * creation or level-up but hasn't committed it yet, so it may come back. Marked
+ * up rather than down — amber and legible, deliberately unlike the flat grey of
+ * a card that's genuinely in play. */
+.compendium-browser .item-container.ee-deck-on-hold {
+  outline: 1px dashed var(--color-level-warning, #cc7722);
+  outline-offset: -1px;
+  background: color-mix(in srgb, var(--color-level-warning, #cc7722) 12%, transparent);
+}
+
 /* The row stays clickable so its description can still be expanded and its
  * tooltip read — only dragging it onto a sheet is off the table. */
 .compendium-browser .item-container.ee-deck-exhausted .item-list-img,
-.compendium-browser .item-container.ee-deck-exhausted .item-list-name {
+.compendium-browser .item-container.ee-deck-exhausted .item-list-name,
+.compendium-browser .item-container.ee-deck-on-hold .item-list-img,
+.compendium-browser .item-container.ee-deck-on-hold .item-list-name {
   cursor: not-allowed;
 }
 

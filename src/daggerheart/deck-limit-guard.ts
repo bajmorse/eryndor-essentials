@@ -25,14 +25,14 @@
  * determined player with the console open could still create the Item directly.
  */
 import { LOG_PREFIX, MODULE_ID } from "../constants.js";
+import { cardKeyOf, type CardSource } from "./deck-card-key.js";
+import { collectHolds, describeHolds } from "./deck-holds.js";
 import { deckLimitActive } from "./deck-limit.js";
 import {
   availabilityOf,
-  cardKeyOf,
   describeHolders,
   drawsFromDeck,
   type CardAvailability,
-  type CardSource,
 } from "./deck-pool.js";
 
 /**
@@ -50,12 +50,31 @@ function isGovernedSheet(parent: AnyObject | null | undefined): boolean {
   return parent?.["documentName"] === "Actor" && drawsFromDeck(parent);
 }
 
+/**
+ * Who has the copies, in one line. A card can be blocked because it's on
+ * sheets, because it's reserved in someone's open wizard, or both — and "Alice
+ * has it picked in her level-up" is a different message from "Kaelen is holding
+ * it", because the first one might free up in a minute.
+ */
+function describeWhy(availability: CardAvailability): string {
+  const parts: string[] = [];
+  if (availability.holders.length) {
+    parts.push(
+      game.i18n.format("EE.DeckLimit.HeldBy", { holders: describeHolders(availability.holders) }),
+    );
+  }
+  if (availability.onHold.length) {
+    parts.push(
+      game.i18n.format("EE.DeckLimit.OnHoldBy", { holders: describeHolds(availability.onHold) }),
+    );
+  }
+  return parts.length ? parts.join(" ") : game.i18n.localize("EE.DeckLimit.HeldByNobody");
+}
+
 /** Tell a player they can't have it, and who to ask. */
 async function reportUnavailable(name: string, availability: CardAvailability): Promise<void> {
   const { DialogV2 } = foundry.applications.api;
-  const held = availability.holders.length
-    ? game.i18n.format("EE.DeckLimit.HeldBy", { holders: describeHolders(availability.holders) })
-    : game.i18n.localize("EE.DeckLimit.HeldByNobody");
+  const held = describeWhy(availability);
 
   await DialogV2.prompt({
     window: { title: game.i18n.localize("EE.DeckLimit.BlockedTitle") },
@@ -80,9 +99,7 @@ async function confirmAndCreate(
   availability: CardAvailability,
 ): Promise<void> {
   const { DialogV2 } = foundry.applications.api;
-  const held = availability.holders.length
-    ? game.i18n.format("EE.DeckLimit.HeldBy", { holders: describeHolders(availability.holders) })
-    : game.i18n.localize("EE.DeckLimit.HeldByNobody");
+  const held = describeWhy(availability);
 
   let confirmed = false;
   try {
@@ -122,7 +139,13 @@ export function registerDeckLimitGuard(): void {
 
       // Read the identity off the document rather than the raw data: Foundry has
       // already merged defaults and stamped `_stats.compendiumSource` by now.
-      const availability = availabilityOf(cardKeyOf(document as CardSource));
+      // Ignore this user's *own* holds. A wizard reserves its picks while it's
+      // open and only releases them once it closes, which is after it creates
+      // them — so counting them here would have every wizard block itself.
+      const availability = availabilityOf(cardKeyOf(document as CardSource), {
+        holds: collectHolds(),
+        ignoreHoldsFrom: game.user?.id,
+      });
       if (!availability) return; // Not a card type the limit covers.
       if (availability.free > 0) return;
 
