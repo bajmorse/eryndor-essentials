@@ -23,6 +23,7 @@ import { DEFAULT_CONFIG, refreshHotbarPage } from "./hotbar/hotbar-pages.js";
 import { reconcileHybridFormPortraits } from "./integrations/void-hybrid-form.js";
 import { checkForSessionBoundary } from "./session-log/session-log-export.js";
 import { CATEGORY_SETTING_KEYS } from "./session-log/session-log-store.js";
+import { refreshTokenBar } from "./tokens/token-bar.js";
 
 export function registerSettings(): void {
   /* ---- General Features ------------------------------------------------- */
@@ -38,6 +39,26 @@ export function registerSettings(): void {
     default: true,
     // Toggling the master switch takes effect immediately: re-refresh every token
     // on the canvas so players' art hides (on) or comes back (off) without a reload.
+    onChange: () => {
+      for (const token of canvas.tokens?.placeables ?? []) {
+        token.renderFlags.set({ refreshState: true });
+      }
+    },
+  });
+
+  // World-scoped, like the switch it extends. On by default: a token a player
+  // cannot see but can still hover, click and drag is the surprising case, not
+  // the useful one.
+  game.settings.register(MODULE_ID, SETTINGS.blockPlayerTokenInteraction, {
+    name: "EE.Settings.BlockPlayerTokenInteraction.Name",
+    hint: "EE.Settings.BlockPlayerTokenInteraction.Hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: true,
+    // Same immediate re-refresh as the master switch above: Foundry re-derives
+    // `eventMode` on every refresh, so this is what hands interactivity back
+    // when it's turned off, without a reload.
     onChange: () => {
       for (const token of canvas.tokens?.placeables ?? []) {
         token.renderFlags.set({ refreshState: true });
@@ -70,6 +91,43 @@ export function registerSettings(): void {
     // behind it changed, which is a case where the stale image is simply wrong.
     default: true,
     // No onChange: read at refresh time, so the next change picks it up.
+  });
+
+  // World-scoped: whether players can reach their own tokens without the canvas
+  // is a table-wide decision, made by the same GM who hid the tokens in the first
+  // place. Off by default — it puts a panel on every player's screen.
+  game.settings.register(MODULE_ID, SETTINGS.tokenBar, {
+    name: "EE.Settings.TokenBar.Name",
+    hint: "EE.Settings.TokenBar.Hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+    // Take effect on every client at once: draw or remove the bar, and (when
+    // turning it on) select something so the HUD stops guessing.
+    onChange: () => refreshTokenBar(),
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.tokenBarLockSelection, {
+    name: "EE.Settings.TokenBarLockSelection.Name",
+    hint: "EE.Settings.TokenBarLockSelection.Hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    // On by default: the bar exists *because* an empty selection is the problem.
+    default: true,
+    onChange: () => refreshTokenBar(),
+  });
+
+  // The only client-scoped setting in the module — see SETTINGS.tokenBarPosition
+  // in constants.ts. Written by dragging the bar, never by a window, and a player
+  // has to be able to write their own, which a world-scoped setting would forbid.
+  game.settings.register(MODULE_ID, SETTINGS.tokenBarPosition, {
+    scope: "client",
+    config: false,
+    type: Object,
+    default: null,
+    // No onChange: the drag has already moved the element it would re-place.
   });
 
   /* ---- Per-Token Hotbars ------------------------------------------------- */

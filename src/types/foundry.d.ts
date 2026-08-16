@@ -28,6 +28,10 @@ declare global {
   /** The persisted side of a Token (embedded in a Scene). */
   interface TokenDocument {
     id: string;
+    /** The token's own name, which is often a generic prototype name for a PC. */
+    name?: string;
+    /** Token artwork. `src` is the image path. */
+    texture?: { src?: string | null } & AnyObject;
     /** Foundry's own GM-only hidden flag — deliberately left untouched here. */
     hidden: boolean;
     /**
@@ -49,6 +53,28 @@ declare global {
   interface Token {
     id: string;
     document: TokenDocument;
+    /** The Actor this token represents — synthetic (ActorDelta) when unlinked. */
+    actor?: AnyObject | null;
+    /** Whether this token is currently selected on *this* client. */
+    controlled?: boolean;
+    /**
+     * PIXI's pointer-event mode. Foundry re-derives it on every state refresh as
+     * `isInteractable ? "static" : "none"`; `"none"` also excludes the token from
+     * `PlaceablesLayer#controllableObjects()`, and so from box-select.
+     */
+    eventMode?: string;
+    /**
+     * Select this token. Returns false when Foundry refused — the token layer
+     * isn't active, a ruler is up, or `_canControl` said no. `force` skips the
+     * `isInteractable` check, which is false whenever the active tool isn't an
+     * interaction tool; it does *not* bypass permissions.
+     */
+    control(options?: {
+      releaseOthers?: boolean;
+      force?: boolean;
+      pan?: boolean;
+      renderSidebar?: boolean;
+    }): boolean;
     /** The sprite. Parented to the primary canvas group; null until drawn. */
     mesh: DisplayObject | null;
     border: DisplayObject;
@@ -72,6 +98,8 @@ declare global {
       placeables: Token[];
       /** Currently selected tokens, in the order they were selected (last = newest). */
       controlled: Token[];
+      /** Foundry's own `placeables.filter(t => t.actor && t.actor.isOwner)`. */
+      ownedTokens: Token[];
       get(id: string): Token | undefined;
     };
   } & AnyObject;
@@ -194,6 +222,8 @@ declare global {
       };
       handlebars: {
         loadTemplates(paths: string[]): Promise<unknown>;
+        /** Render a preloaded template to an HTML string. */
+        renderTemplate(path: string, context: AnyObject): Promise<string>;
       };
     };
     utils: AnyObject;

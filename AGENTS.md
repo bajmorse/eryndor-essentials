@@ -13,10 +13,45 @@ loads).
 
 - **Invisible-to-players tokens** (`src/tokens/invisible-tokens.ts`) — when the GM
   drops a token, it's flagged `flags.eryndor-essentials.invisibleToPlayers` and its
-  art is not rendered on player clients, yet it stays fully targetable/interactive
-  (we blank `mesh`/`border`/`nameplate`/etc. but never touch Foundry's `hidden`,
-  `token.visible`, or the container `hitArea`). World setting `hideDmTokens` is the
-  master switch; a GM-only token-HUD button toggles individual tokens.
+  art is not rendered on player clients (we blank `mesh`/`border`/`nameplate`/etc.
+  but never touch Foundry's `hidden` or `token.visible` — those would take the
+  token out of the scene, and we only want it unseen). World setting
+  `hideDmTokens` is the master switch; a GM-only token-HUD button toggles
+  individual tokens.
+  - *Inert tokens* (`blockPlayerTokenInteraction`, **on** by default, greyed out
+    while `hideDmTokens` is off). The token is also removed from the pointer-event
+    system on player clients: `token.eventMode = "none"`, set from the same
+    `refreshToken` hook that blanks the art. Without it an unseen token still
+    answers the mouse — hover tooltips off bare ground, click-select and drag of
+    something invisible, and getting swept up in a box-select. `"none"` rather
+    than `interactive = false` so PIXI skips the object *and its children*.
+    - **Box-select falls out for free**, and this is the right way to do it:
+      `PlaceablesLayer#controllableObjects()` yields only placeables that are
+      `visible && renderable && interactive`, so a marquee (and `controlAll`,
+      the select-all keybinding) never sees these tokens. An earlier attempt
+      patched `selectObjects` to block the gesture; it was reverted — it left the
+      marquee drawing and doing nothing, which reads as broken.
+    - Safe to re-set every refresh, and self-undoing: `PlaceableObject#
+      _refreshState` re-derives `eventMode = isInteractable ? "static" : "none"`,
+      which is what hands interactivity back when the setting is turned off, the
+      same way the blanked artwork returns.
+    - A `preUpdateToken` backstop cancels player-initiated `x`/`y`/`elevation`/
+      `rotation` changes to a flagged token. Inertness closes the pointer routes
+      but not the keyboard, and `token-bar.ts` deliberately keeps something
+      controlled at all times — arrow keys would otherwise silently move a token
+      the GM placed, corrupting the distance automation the tokens exist for.
+      `preUpdate*` fires only on the initiating client, so testing `game.user`
+      is the same as testing who moved it.
+  - **Targeting is unaffected, and that is load-bearing** — it's the reason the
+    tokens are on the board at all, along with distance measurement.
+    `TokenLayer#setTargets` resolves ids and consults neither visibility nor
+    interactivity, and `daggerheart-target-helper` picks targets through its own
+    UI (`canvas.tokens.setTargets(...)`), never by clicking the canvas. The target
+    reticle (`targetPips`/`targetArrows`) is blanked so a target doesn't reveal
+    its position, but `game.user.targets` is untouched.
+  - The Tokens on Scene bar is unaffected too, and becomes the player's only way
+    to select: it calls `control({force: true})`, which skips the
+    `isInteractable` check, and `Token#_canControl` never consults the event mode.
 - **Instant token drag** (`src/tokens/drag-animation.ts`) — world setting
   `disableDragAnimation` makes drag-and-dropped tokens snap to the destination
   instead of gliding at `CONFIG.Token.movement.defaultSpeed`. Implemented by
@@ -24,6 +59,52 @@ loads).
   operation's `method` is `"dragging"`. Deliberately scoped to drag-drop only —
   keyboard movement, the HUD, paste/undo, and other modules' API moves still
   animate.
+- **Tokens on Scene bar** (`src/tokens/token-bar.ts`) — the companion to the
+  invisible-token feature above. Because players never see a token, they cannot
+  click one — but they *can* still deselect (bare ground, Escape, or picking a
+  non-interaction tool, which makes `TokenLayer#_onActivate` call `releaseAll`),
+  and with nothing selected **`daggerheart-hud` falls back to the wrong
+  character**: its `getPlayerCharacter()` returns
+  `game.actors.filter(type === "character" && isOwner)[0]` and **never consults
+  `game.user.character`**, so a player who owns two sheets gets somebody else's
+  HUD with no visible token to click their way back to. Two halves, both needed:
+  a **lock** that re-controls the last token whenever a player's selection
+  empties, and a **floating bar** listing the tokens they own on the scene, which
+  is the way back when the lock can't re-select (`Token#_canControl` refuses
+  while a ruler is measuring; a token can also be deleted). World settings
+  `tokenBar` (off by default) and `tokenBarLockSelection` (on, greyed out in the
+  window while the bar is off — same `refreshControls` pattern as the Deck Limit
+  fields). **Players only**; the GM can click tokens already, and
+  `canvas.tokens.ownedTokens` would hand them the whole scene. Notes:
+  - The roster is Foundry's own `canvas.tokens.ownedTokens`
+    (`placeables.filter(t => t.actor && t.actor.isOwner)`) rather than a
+    re-derived filter, sorted assigned-character-first. Rows are keyed and sorted
+    on `document.actorId` (the *base* actor — same unlinked-token trap as
+    `hotbar-pages.ts`) and labelled with the **actor's** name, since a PC's token
+    is routinely left on a generic prototype name.
+  - `controlToken` is debounced to 0 and the pass then reads
+    `canvas.tokens.controlled`, exactly as `hotbar-pages.ts` does — acting on the
+    release event alone would fight the release+control pair one click produces.
+    Re-controlling re-enters the pass but settles in one extra turn (the
+    selection is non-empty by then); a *failed* re-control fires no hook, so
+    there's no loop either way.
+  - `control({force: true})` skips `Token#isInteractable` (false whenever the
+    active tool isn't an interaction tool). It does **not** bypass permissions —
+    `_canControl` still runs.
+  - **`CANVAS_SETTLE_MS` (750 ms) is load-bearing and deliberately later than it
+    looks.** `daggerheart-hud` also hooks `canvasReady` and calls its own
+    `createOrUpdateHUD()` on a **500 ms** timer *unconditionally* — it never
+    checks whether a token is selected — so an opening selection made sooner is
+    silently overwritten by the very fallback this feature exists to avoid.
+    Re-asserting instead of waiting doesn't work: `PlaceableObject#control`
+    returns early when the token is already controlled and fires no hook.
+  - Plain DOM appended to the **body**, not an ApplicationV2 window, following
+    `../daggerheart-spotlight-tracker/src/ui/spotlight-bar.ts` (where a
+    standalone window was built and removed as too heavy). Dragged by its header
+    via pointer capture; the position is the module's **only client-scoped
+    setting** (`tokenBarPosition`) — it's one user's window layout, and a player
+    has to be able to write it, which world scope would forbid. Clamped back into
+    the viewport on create, drag-end and window resize.
 - **Per-actor hotbar pages** (`src/hotbar/hotbar-pages.ts`, `hotbar-pages-app.ts`) —
   selecting a token swaps the hotbar to the page assigned to its actor; anything
   unassigned (or an empty selection) falls back to a configurable default page.

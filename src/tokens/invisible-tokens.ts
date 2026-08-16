@@ -10,14 +10,27 @@
  *   - A token's sprite (`token.mesh`) lives in the primary canvas group, and its
  *     border/nameplate/bars/etc. are children of the token container. We blank all
  *     of those on player clients.
- *   - We deliberately do NOT touch Foundry's `hidden` flag, `token.visible`, or the
- *     container's `hitArea`/interaction. The token placeable stays visible and
- *     interactive to Foundry, so hover, the Target tool, and targeting keys all
- *     keep working — the player just can't see it.
+ *   - We deliberately do NOT touch Foundry's `hidden` flag or `token.visible`.
+ *     Those would take the token out of the scene as far as the player's client is
+ *     concerned; we only want it unseen, not gone.
  *   - The target reticle (`targetPips`/`targetArrows`) is blanked too, so targeting
  *     the token (e.g. via the target-helper module) doesn't reveal its position on
  *     a player's screen. Only the *visual* is hidden; the underlying target data
  *     (`game.user.targets`) is untouched, so targeting still works.
+ *
+ * With SETTINGS.blockPlayerTokenInteraction on, the token is also made **inert**
+ * on player clients — see {@link makeInert}. An invisible token that still
+ * answers the mouse is worse than a visible one: the player gets a hover tooltip
+ * from empty ground, can select and drag something they can't see, and can sweep
+ * one up in a box-select. As far as a player is concerned the token should not be
+ * on the board at all.
+ *
+ * **Targeting survives that, and this is the load-bearing fact**: `TokenLayer#
+ * setTargets` resolves the ids it is given and checks neither visibility nor
+ * interactivity, and the Target Helper picks targets through its own UI rather
+ * than by clicking the canvas. Distance automation reads token positions, which
+ * nothing here changes either. So the two reasons the tokens are on the board in
+ * the first place both keep working.
  *
  * The per-token FLAGS.invisibleToPlayers flag is the source of truth for which
  * tokens are affected; SETTINGS.hideDmTokens is the GM's master on/off switch.
@@ -29,9 +42,46 @@ function featureEnabled(): boolean {
   return game.settings.get(MODULE_ID, SETTINGS.hideDmTokens) === true;
 }
 
+/**
+ * Whether hidden tokens should also be untouchable. Gated on the master switch:
+ * making a token nobody can see inert is the point, and doing it to a *visible*
+ * token would just look broken.
+ */
+function inertEnabled(): boolean {
+  return featureEnabled() && game.settings.get(MODULE_ID, SETTINGS.blockPlayerTokenInteraction) === true;
+}
+
 /** Whether a token is flagged invisible-to-players. */
 export function isInvisibleToPlayers(doc: TokenDocument): boolean {
   return doc.getFlag(MODULE_ID, FLAGS.invisibleToPlayers) === true;
+}
+
+/**
+ * Take the token out of the pointer-event system entirely on this client.
+ *
+ * `"none"` rather than `interactive = false`: it stops PIXI hit-testing this
+ * object *and its children*, so there is no hover state, no click, no drag, and
+ * no tooltip — the cursor passes through to the canvas underneath as if nothing
+ * were there.
+ *
+ * It also settles box-select, without anything having to intercept the gesture:
+ * `PlaceablesLayer#controllableObjects()` yields only placeables that are
+ * `visible && renderable && interactive`, and PIXI reports `interactive` as false
+ * for `eventMode: "none"`. So a marquee (and `controlAll`, the select-all
+ * keybinding) simply never sees these tokens.
+ *
+ * Safe to set on every refresh: Foundry re-derives this itself in
+ * `PlaceableObject#_refreshState` (`this.eventMode = this.isInteractable ?
+ * "static" : "none"`), which is what restores normal behavior the moment the
+ * setting is turned off or the token is un-flagged — the same way the blanked
+ * artwork comes back.
+ *
+ * The bar in `token-bar.ts` is unaffected and remains the player's way in: it
+ * calls `control({force: true})`, which skips the `isInteractable` check, and
+ * `Token#_canControl` never consults the event mode.
+ */
+function makeInert(token: Token): void {
+  token.eventMode = "none";
 }
 
 /**
@@ -58,6 +108,8 @@ function applyPlayerVisibility(token: Token): void {
   token.targetPips.visible = false;
   token.targetArrows.visible = false;
   if (token.levelIndicator) token.levelIndicator.visible = false;
+
+  if (inertEnabled()) makeInert(token);
 }
 
 /** Force a token to re-run its visibility/state refresh (and our hook with it). */
@@ -121,7 +173,27 @@ export function registerInvisibleTokens(): void {
     }
   });
 
-  // 4. GM-only HUD toggle to hide/reveal an individual token from players.
+  // 4. Backstop: a player must not be able to *move* a token they can't see.
+  //    Making it inert closes every pointer route, but not the keyboard — arrow
+  //    keys move whatever is controlled, and `token-bar.ts` deliberately keeps
+  //    something controlled at all times. Silently nudging a token the GM placed
+  //    would quietly corrupt the distance automation those tokens are on the
+  //    board for, so this cancels the update outright.
+  //
+  //    `preUpdate*` fires only on the client that initiated the change (see
+  //    drag-animation.ts), so testing the local user is the same as testing who
+  //    moved it: a GM's move is unaffected, and the replicated update that
+  //    reaches a player's client never enters this hook.
+  Hooks.on("preUpdateToken", (doc: TokenDocument, changed: AnyObject) => {
+    if (!inertEnabled()) return;
+    if (game.user?.isGM) return;
+    if (!isInvisibleToPlayers(doc)) return;
+    const moved = ["x", "y", "elevation", "rotation"].some((key) => key in changed);
+    if (!moved) return;
+    return false;
+  });
+
+  // 5. GM-only HUD toggle to hide/reveal an individual token from players.
   Hooks.on("renderTokenHUD", (hud: AnyObject, element: HTMLElement) =>
     onRenderTokenHUD(hud, element),
   );

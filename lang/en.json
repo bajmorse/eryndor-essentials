@@ -4,8 +4,21 @@
   "EE.Settings.HideDmTokens.Name": "Hide DM-dropped tokens from players",
   "EE.Settings.HideDmTokens.Hint": "When you (the GM) drop a token onto a scene, make it invisible to players while still letting them target and interact with it. Toggle any single token from its HUD with the eye icon.",
 
+  "EE.Settings.BlockPlayerTokenInteraction.Name": "Make hidden tokens untouchable for players",
+  "EE.Settings.BlockPlayerTokenInteraction.Hint": "Players can't hover, click, select, drag or box-select a token that's hidden from them, and can't nudge one with the arrow keys — as far as they can tell it isn't on the board at all. Targeting is unaffected, and so is anything that measures distance between tokens. Players still choose which of their own tokens is active from the Tokens on Scene bar.",
+
   "EE.Settings.DisableDragAnimation.Name": "Disable token drag animation",
   "EE.Settings.DisableDragAnimation.Hint": "Dragging and dropping a token moves it instantly instead of gliding it to the destination at Foundry's fixed animation speed. Applies to everyone at the table, and only to drag-and-drop — keyboard movement still animates.",
+
+  "EE.Settings.TokenBar.Name": "Show players a \"Tokens on Scene\" bar",
+  "EE.Settings.TokenBar.Hint": "Give each player a small floating list of the tokens they own on the current scene, so they can choose which one they're driving without hunting for it on the canvas — necessary when tokens are hidden from players. Players can drag the bar wherever they like; the GM never sees it.",
+
+  "EE.Settings.TokenBarLockSelection.Name": "Never leave a player with nothing selected",
+  "EE.Settings.TokenBarLockSelection.Hint": "If a player deselects their last token — by clicking empty ground, pressing Escape, or switching tools — put it straight back. Without this, their HUD falls back to whichever character it finds first, which may not be theirs.",
+
+  "EE.TokenBar.Title": "Tokens on Scene",
+  "EE.TokenBar.DragTooltip": "Drag to move this bar",
+  "EE.TokenBar.SelectRefused": "That token can't be selected right now. Switch back to the Select tool and try again.",
 
   "EE.Settings.HotbarPageSwap.Name": "Swap hotbar page on token selection",
   "EE.Settings.HotbarPageSwap.Hint": "Selecting a token switches the hotbar to the page assigned to that token's character. Nothing else in this window has any effect until this is on.",
@@ -18,7 +31,7 @@
 
   "EE.Settings.GeneralFeaturesMenu.Name": "General Features",
   "EE.Settings.GeneralFeaturesMenu.Label": "Configure",
-  "EE.Settings.GeneralFeaturesMenu.Hint": "Token visibility, drag movement, and keeping raised portraits in step with character artwork.",
+  "EE.Settings.GeneralFeaturesMenu.Hint": "Token visibility and selection, drag movement, and keeping raised portraits in step with character artwork.",
 
   "EE.Settings.HotbarPagesMenu.Name": "Per-Token Hotbars",
   "EE.Settings.HotbarPagesMenu.Label": "Configure Assignments",

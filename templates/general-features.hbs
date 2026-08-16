@@ -16,6 +16,17 @@
       <p class="hint">{{localize "EE.Settings.HideDmTokens.Hint"}}</p>
     </div>
 
+    {{!-- Greyed out by `refreshControls` while the master switch above is off:
+         this only ever applies to tokens that switch has hidden. --}}
+    <div class="form-group">
+      <label for="ee-block-token-interaction">{{localize "EE.Settings.BlockPlayerTokenInteraction.Name"}}</label>
+      <div class="form-fields">
+        <input type="checkbox" id="ee-block-token-interaction" name="blockPlayerTokenInteraction"
+               {{#if blockPlayerTokenInteraction}}checked{{/if}}>
+      </div>
+      <p class="hint">{{localize "EE.Settings.BlockPlayerTokenInteraction.Hint"}}</p>
+    </div>
+
     <div class="form-group">
       <label for="ee-disable-drag-animation">{{localize "EE.Settings.DisableDragAnimation.Name"}}</label>
       <div class="form-fields">
@@ -24,6 +35,28 @@
       </div>
       <p class="hint">{{localize "EE.Settings.DisableDragAnimation.Hint"}}</p>
     </div>
+
+    <div class="form-group">
+      <label for="ee-token-bar">{{localize "EE.Settings.TokenBar.Name"}}</label>
+      <div class="form-fields">
+        <input type="checkbox" id="ee-token-bar" name="tokenBar"
+               {{#if tokenBar}}checked{{/if}}>
+      </div>
+      <p class="hint">{{localize "EE.Settings.TokenBar.Hint"}}</p>
+    </div>
+
+    {{!-- Greyed out by `refreshControls` while the bar is off: the lock is what
+         makes an empty selection impossible, and the bar is the only way back
+         when it can't. See GeneralFeaturesConfig. --}}
+    <div class="form-group">
+      <label for="ee-token-bar-lock">{{localize "EE.Settings.TokenBarLockSelection.Name"}}</label>
+      <div class="form-fields">
+        <input type="checkbox" id="ee-token-bar-lock" name="tokenBarLockSelection"
+               {{#if tokenBarLockSelection}}checked{{/if}}>
+      </div>
+      <p class="hint">{{localize "EE.Settings.TokenBarLockSelection.Hint"}}</p>
+    </div>
+
   </fieldset>
 
   <fieldset>

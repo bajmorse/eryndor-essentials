@@ -162,3 +162,112 @@
   padding: 0;
   line-height: 1;
 }
+
+/* --- Tokens on Scene bar ---------------------------------------------------- */
+
+/* A floating strip over the canvas (see tokens/token-bar.ts), positioned in
+ * viewport pixels by the module — `left`/`top` are set inline, so nothing here
+ * may set them. `--z-index-ui` (60) is core's own layer for chrome that sits
+ * above the board and below windows, which is exactly where this belongs: it
+ * must not cover a dialog. */
+.ee-token-bar {
+  position: fixed;
+  z-index: var(--z-index-ui, 60);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 9rem;
+  max-width: 14rem;
+  padding: 4px;
+  border: 1px solid var(--color-border-dark, #000);
+  border-radius: 4px;
+  background: var(--color-cool-5-90, rgb(0 0 0 / 70%));
+  color: var(--color-light-1, #f0f0e0);
+  font-size: var(--font-size-13, 13px);
+}
+
+/* The drag handle. `cursor: grab` and the grip icon are the only affordance —
+ * there's no title bar here to imply one. */
+.ee-token-bar .ee-token-bar-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 3px;
+  border-bottom: 1px solid var(--color-border-dark, #000);
+  cursor: grab;
+  opacity: 0.75;
+  font-size: var(--font-size-11, 11px);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  /* The pointer handler moves the bar itself; letting the browser also treat
+   * this as text or a scroll gesture fights it on touch and trackpads. */
+  touch-action: none;
+  user-select: none;
+}
+
+.ee-token-bar .ee-token-bar-header:active {
+  cursor: grabbing;
+}
+
+.ee-token-bar .ee-token-bar-title {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ee-token-bar .ee-token-bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* One row per owned token. A <button> so it's keyboard-reachable — a player who
+ * cannot see their token on the canvas shouldn't need a mouse to find it. */
+.ee-token-bar .ee-token-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  padding: 2px 4px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: none;
+  color: inherit;
+  font-size: inherit;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ee-token-bar .ee-token-bar-row:hover {
+  border-color: var(--color-border-highlight, #ff6400);
+  background: rgb(255 255 255 / 10%);
+}
+
+/* The selected token — which, since the tokens themselves are invisible to
+ * players, is the only place on screen that says who they're driving. */
+.ee-token-bar .ee-token-bar-row.active {
+  border-color: var(--color-border-highlight, #ff6400);
+  background: rgb(255 255 255 / 15%);
+  font-weight: bold;
+}
+
+.ee-token-bar .ee-token-bar-portrait {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 3px;
+  object-fit: cover;
+}
+
+.ee-token-bar .ee-token-bar-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

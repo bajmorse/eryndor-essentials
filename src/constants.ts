@@ -23,6 +23,44 @@ export const SETTINGS = {
    */
   disableDragAnimation: "disableDragAnimation",
   /**
+   * Make tokens flagged {@link FLAGS.invisibleToPlayers} completely inert on
+   * player clients: no hover, no click, no drag, no box-select, and no moving
+   * them with the arrow keys. A sub-option of {@link SETTINGS.hideDmTokens},
+   * which is why the window greys it out while that is off.
+   *
+   * Targeting is deliberately *not* affected, and doesn't need to be:
+   * `TokenLayer#setTargets` resolves ids and never consults visibility or
+   * interactivity, and the Target Helper picks targets through its own UI rather
+   * than by clicking the canvas. Distance automation reads token positions, which
+   * is likewise untouched.
+   */
+  blockPlayerTokenInteraction: "blockPlayerTokenInteraction",
+  /**
+   * Master switch for the Tokens on Scene bar — a floating list of the tokens a
+   * player owns on the current scene, so they can pick which one they're driving
+   * without finding it on the canvas. World-scoped: at this table every token is
+   * invisible to players (see {@link SETTINGS.hideDmTokens}), which is a
+   * table-wide decision, and so is the answer to "can players still get back to
+   * their character". Off by default — it puts a panel on every player's screen.
+   */
+  tokenBar: "tokenBar",
+  /**
+   * Whether the bar also stops a player's selection from emptying: releasing the
+   * last controlled token immediately re-controls it. Separate from
+   * {@link SETTINGS.tokenBar} only so the lock can be dropped mid-session without
+   * taking the bar (the player's only way back) with it — the two are meant to
+   * run together, which is why this is on by default and greyed out while the bar
+   * is off.
+   */
+  tokenBarLockSelection: "tokenBarLockSelection",
+  /**
+   * Where this client has dragged the bar to: `{ left, top }` in pixels, or null
+   * for "wherever the default puts it". **Client-scoped**, unlike everything else
+   * here — it's one user's window layout, and a player must be able to write it.
+   * Never shown in a settings window; the drag is its only editor.
+   */
+  tokenBarPosition: "tokenBarPosition",
+  /**
    * Master switch for swapping the hotbar page to match the selected token's
    * actor. World-scoped so the GM owns the whole feature.
    */
@@ -194,6 +232,8 @@ export const TEMPLATES = {
   hotbarPages: `modules/${MODULE_ID}/templates/hotbar-pages.hbs`,
   /** Body of the (untabbed) General Features window. */
   generalFeatures: `modules/${MODULE_ID}/templates/general-features.hbs`,
+  /** Contents of the floating Tokens on Scene bar. */
+  tokenBar: `modules/${MODULE_ID}/templates/token-bar.hbs`,
   /** "The Void Automations" tab of the Daggerheart Automation window. */
   automationVoid: `modules/${MODULE_ID}/templates/daggerheart-automation-void.hbs`,
   /** Body of the (untabbed) Daggerheart Utilities window. */

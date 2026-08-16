@@ -19,12 +19,14 @@ import { registerSettingsGroups } from "./settings-groups.js";
 import { registerSettings } from "./settings.js";
 import { registerDragAnimation } from "./tokens/drag-animation.js";
 import { registerInvisibleTokens } from "./tokens/invisible-tokens.js";
+import { registerTokenBar } from "./tokens/token-bar.js";
 
 Hooks.once("init", async () => {
   console.log(`${LOG_PREFIX} Initializing.`);
   registerSettings();
   registerSettingsGroups();
   registerInvisibleTokens();
+  registerTokenBar();
   registerDragAnimation();
   registerHotbarPages();
   registerSessionLog();
