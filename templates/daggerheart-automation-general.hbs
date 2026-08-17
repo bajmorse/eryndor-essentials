@@ -1,0 +1,21 @@
+{{!-- "General" tab of the Daggerheart Automation window — rules the Daggerheart
+     system states but leaves the table to apply, with no third-party module
+     involved. The `name` on each input matches its key in SETTINGS, which is how
+     ConfigWindow reads them back on save. `tab` comes from _preparePartContext,
+     and the data-group/data-tab pair is what changeTab looks for. --}}
+<section class="tab {{tab.cssClass}}" data-group="{{tab.group}}" data-tab="{{tab.id}}">
+
+  <fieldset>
+    <legend>{{localize "EE.Automation.TargetingLegend"}}</legend>
+
+    <div class="form-group">
+      <label for="ee-reach">{{localize "EE.Settings.ReachMeleeAsVeryClose.Name"}}</label>
+      <div class="form-fields">
+        <input type="checkbox" id="ee-reach" name="reachMeleeAsVeryClose"
+               {{#if reach}}checked{{/if}}>
+      </div>
+      <p class="hint">{{localize "EE.Settings.ReachMeleeAsVeryClose.Hint"}}</p>
+    </div>
+  </fieldset>
+
+</section>

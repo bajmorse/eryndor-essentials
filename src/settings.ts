@@ -18,6 +18,7 @@ import { GeneralFeaturesConfig } from "./apps/general-features-config.js";
 import { SessionLogConfig } from "./apps/session-log-config.js";
 import { MENUS, MODULE_ID, SETTINGS } from "./constants.js";
 import { DECK_CARD_TYPES, DEFAULT_DECK_LIMIT } from "./daggerheart/deck-limit.js";
+import { reconcileReach } from "./daggerheart/reach.js";
 import { HotbarPagesConfig } from "./hotbar/hotbar-pages-app.js";
 import { DEFAULT_CONFIG, refreshHotbarPage } from "./hotbar/hotbar-pages.js";
 import { reconcileHybridFormPortraits } from "./integrations/void-hybrid-form.js";
@@ -158,6 +159,20 @@ export function registerSettings(): void {
   });
 
   /* ---- Daggerheart Automation -------------------------------------------- */
+
+  // World-scoped: the range a Melee weapon reaches has to be one answer for the
+  // whole table, or two clients would gate targeting differently. Off by
+  // default — it changes what a printed card says, even if only to enforce what
+  // another card says about it.
+  game.settings.register(MODULE_ID, SETTINGS.reachMeleeAsVeryClose, {
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+    // Ranges are adjusted as documents are prepared, and nothing re-prepares an
+    // already-open sheet on its own — so toggling has to sweep what's in play.
+    onChange: () => reconcileReach(),
+  });
 
   // World-scoped: only a GM can write actor documents, and the artwork this
   // changes is shared by the whole table.

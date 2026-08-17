@@ -9,6 +9,7 @@ import { releaseOwnHolds } from "./daggerheart/deck-holds.js";
 import { registerDeckLimitBrowser } from "./daggerheart/deck-limit-browser.js";
 import { registerDeckLimitGuard } from "./daggerheart/deck-limit-guard.js";
 import { registerDeckLimitWizard } from "./daggerheart/deck-limit-wizard.js";
+import { registerReach } from "./daggerheart/reach.js";
 import { registerHotbarPages } from "./hotbar/hotbar-pages.js";
 import { registerGinzzzuPortraits } from "./integrations/ginzzzu-portraits.js";
 import { registerVoidHybridForm } from "./integrations/void-hybrid-form.js";
@@ -34,6 +35,9 @@ Hooks.once("init", async () => {
   registerDeckLimitGuard();
   registerDeckLimitBrowser();
   registerDeckLimitWizard();
+  // Patches the system's data preparation, so it has to be in place before any
+  // document is constructed — `init` is the last hook that guarantees that.
+  registerReach();
   // Third-party integrations: each hooks nothing unless its module is active.
   registerVoidHybridForm();
   registerVoidHybridFormStressEnd();

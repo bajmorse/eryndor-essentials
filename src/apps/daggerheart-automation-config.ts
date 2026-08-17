@@ -1,10 +1,11 @@
 /**
- * The **Daggerheart Automation** window — integrations with Daggerheart-specific
- * third-party modules.
+ * The **Daggerheart Automation** window — rules that are already written down
+ * somewhere (in the system, on a card, or in a third-party module) but that
+ * nothing applies for you.
  *
- * Tabbed with a single tab today ("The Void Automations"). The nav is here from
- * the start so adding the next module's automation is a new `PARTS` entry and a
- * new `TABS` entry, not a restructure.
+ * Two tabs: "General" for the ones we automate directly, and "The Void" for the
+ * hookups into that module. Adding another is a new `PARTS` entry and a new
+ * `TABS` entry, not a restructure.
  */
 import { MODULE_ID, SETTINGS, TEMPLATES } from "../constants.js";
 import { ConfigWindow } from "./config-window.js";
@@ -26,20 +27,26 @@ export class DaggerheartAutomationConfig extends ConfigWindow {
 
   static TABS: AnyObject = {
     [TAB_GROUP]: {
-      tabs: [{ id: "void", icon: "fa-solid fa-moon", label: "EE.Automation.Tabs.Void" }],
-      initial: "void",
+      tabs: [
+        { id: "general", icon: "fa-solid fa-sliders", label: "EE.Automation.Tabs.General" },
+        { id: "void", icon: "fa-solid fa-moon", label: "EE.Automation.Tabs.Void" },
+      ],
+      initial: "general",
     },
   };
 
+  // Declaration order is DOM order: the nav, then each tab's section, then the
+  // footer — which sits outside the tabs, so one Save/Cancel bar covers them all.
   static PARTS = {
     // Core's own nav markup, so the tabs look like every other Foundry window.
     tabs: { template: "templates/generic/tab-navigation.hbs" },
+    general: { template: TEMPLATES.automationGeneral },
     void: { template: TEMPLATES.automationVoid },
-    // Outside the tabs: one Save/Cancel bar for the whole window.
     footer: { template: TEMPLATES.configFooter },
   };
 
   protected override settingKeys = [
+    SETTINGS.reachMeleeAsVeryClose,
     SETTINGS.voidHybridFormPortrait,
     SETTINGS.voidHybridFormPrototype,
     SETTINGS.voidHybridFormStressRevert,
@@ -55,6 +62,7 @@ export class DaggerheartAutomationConfig extends ConfigWindow {
       // picked with a precomputed boolean.
       voidActive: voidModule?.active === true,
       voidVersion: String(voidModule?.["version"] ?? ""),
+      reach: DaggerheartAutomationConfig.flag(SETTINGS.reachMeleeAsVeryClose),
       portrait: DaggerheartAutomationConfig.flag(SETTINGS.voidHybridFormPortrait),
       prototype: DaggerheartAutomationConfig.flag(SETTINGS.voidHybridFormPrototype),
       stressRevert: DaggerheartAutomationConfig.flag(SETTINGS.voidHybridFormStressRevert),

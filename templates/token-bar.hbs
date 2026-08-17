@@ -2,7 +2,10 @@
      Rendered into a root <aside> the module creates and keeps, so this is the
      inside of the bar rather than the bar itself. Clicks are read off
      `data-ee-token` by one delegated listener on that root; the header carries
-     `data-ee-drag`, which is what the drag listener looks for. --}}
+     `data-ee-drag`, which is what the drag listener looks for.
+
+     The survey button is a *sibling* of the row button, not a child: nesting one
+     <button> inside another is invalid HTML, and browsers unnest it. --}}
 <header class="ee-token-bar-header" data-ee-drag data-tooltip="{{dragTooltip}}">
   <i class="fa-solid fa-grip-lines"></i>
   <span class="ee-token-bar-title">{{title}}</span>
@@ -10,12 +13,18 @@
 
 <ul class="ee-token-bar-list">
   {{#each tokens}}
-  <li>
+  <li class="ee-token-bar-item">
     <button type="button" class="ee-token-bar-row{{#if this.controlled}} active{{/if}}"
             data-ee-token="{{this.id}}" aria-pressed="{{#if this.controlled}}true{{else}}false{{/if}}">
       <img class="ee-token-bar-portrait" src="{{this.img}}" alt="">
       <span class="ee-token-bar-name">{{this.name}}</span>
     </button>
+    {{#if @root.canSurvey}}
+    <button type="button" class="ee-token-bar-survey" data-ee-survey="{{this.id}}"
+            data-tooltip="{{@root.surveyTooltip}}" aria-label="{{@root.surveyTooltip}}">
+      <i class="fa-solid fa-crosshairs"></i>
+    </button>
+    {{/if}}
   </li>
   {{/each}}
 </ul>

@@ -98,6 +98,15 @@ loads).
     silently overwritten by the very fallback this feature exists to avoid.
     Re-asserting instead of waiting doesn't work: `PlaceableObject#control`
     returns early when the token is already controlled and fires no hook.
+  - Each row carries a **crosshair button** opening the Target Helper's *range
+    survey* for that token — a read-only list of what's on the scene and how far
+    away it is, colour-coded by range band, targeting nothing. Routed through
+    `src/integrations/target-helper-survey.ts`, and drawn **only when that
+    module answers** (`surveysAvailable()`), since a control that's present but
+    inert is worse than no control. It's a sibling `<button>` of the row button
+    rather than nested — a `<button>` inside a `<button>` is invalid HTML and
+    browsers unnest it — which is why the delegated listener checks
+    `[data-ee-survey]` before `[data-ee-token]`.
   - Plain DOM appended to the **body**, not an ApplicationV2 window, following
     `../daggerheart-spotlight-tracker/src/ui/spotlight-bar.ts` (where a
     standalone window was built and removed as too heavy). Dragged by its header
@@ -174,6 +183,14 @@ loads).
   setting `voidHybridFormStressRevert`, **on by default** (unlike the portrait
   settings above) — this isn't optional artwork, it's a rule Void already half-
   implements; leaving it off leaves that half-implementation in place.
+- **Range survey hookup** (`src/integrations/target-helper-survey.ts`) — *optional*
+  integration with the sibling module **Maiyalis: Target Helper**
+  (`daggerheart-target-helper`), whose `game.modules.get(…).api.openRangeSurvey`
+  opens a read-only window listing everything on the scene with its distance from
+  a given token. The only caller is the Tokens on Scene bar above. Gated twice:
+  `surveysAvailable()` decides whether the button is drawn at all, and
+  `openRangeSurvey` re-checks on click, since a GM can disable a module in
+  another tab between the two.
 - **Raised-portrait refresh** (`src/integrations/ginzzzu-portraits.ts`) — *optional*
   integration with **Ginzzzu's Portraits & NPC Dock** (`ginzzzu-portraits`). Its
   own `updateActor` handler live-swaps a raised portrait's image, but only for six
@@ -185,6 +202,44 @@ loads).
   is legitimately not what's shown. World setting `refreshRaisedPortraits` (default
   **on**). Portraits are **local DOM** built from a replicated flag, so unlike the
   Hybrid Form writer this runs on *every* client.
+- **Reach** (`src/daggerheart/reach.ts`) — the Giant ancestry's secondary feature
+  ("Treat any weapon, ability, spell, or other feature that has a Melee range as
+  though it had a Very Close range") is prose on a `feature` Item that the system
+  enforces nowhere. World setting `reachMeleeAsVeryClose`, off by default, edited
+  on the **General** tab of `daggerheartAutomationMenu`. An actor grants it by
+  holding a `feature` Item named "Reach" (case-insensitive) — that's how the
+  ancestry's feature is embedded on the character, and it's what the system's own
+  `sheetLists` filters on. Deliberately *not* matched on other item types: a
+  weapon someone named "Reach" shouldn't turn the rule on.
+  - The change is made to the **derived** `range` of every Action the actor can
+    use, never to stored data. Consumers all read the prepared value — the
+    weapon/action tooltips (`templates/ui/tooltip/*.hbs`), the inventory rows, and
+    `daggerheart-target-helper`'s `isWithinRange`, which is what actually stops a
+    Very Close token being picked as a target for a Melee attack — while the
+    action config sheet edits `source.range`, so the GM still sees the printed
+    range. Nothing is written to the database, so the rule un-applies itself.
+  - **Two hook points, because the system prepares actions in two places.**
+    `Item#prepareEmbeddedDocuments` (Daggerheart overrides it to call
+    `prepareData()` on each action) covers `system.actions` plus a weapon's base
+    `system.attack`; `Actor#prepareData` covers the actor's *own*
+    `system.attack` — a character's unarmed strike, an adversary's statblock
+    attack — which lives on the actor, not on an item, and is where `melee` is the
+    schema default. `system.attack` is **not** in the `system.actions`
+    collection; the system's own code concatenates the two everywhere it wants
+    both.
+  - Prototype patches, because **Foundry fires no hook during data preparation**.
+    Installed during `init`: the system assigns `CONFIG.Actor.documentClass` /
+    `CONFIG.Item.documentClass` at script load (before any `init` hook) and no
+    document is constructed until `setup`, so the patch is in place for the first
+    preparation and there is nothing to catch up on at load.
+  - The adjustment is **idempotent in both directions**, and has to be:
+    `Actor#prepareData` calls `Item#prepareData`, which does *not* re-initialize
+    `system` from source, so a one-way write would stick forever. The undo is
+    narrow on purpose — it reverts a `veryClose` only when `action._source.range`
+    is `melee`, so an action genuinely printed as Very Close is never touched.
+    `reconcileReach` (the setting's `onChange`) exists only for the toggle
+    changing mid-session, where documents are already prepared and already on
+    screen and nothing would otherwise re-prepare them.
 - **Deck Limit** (`src/daggerheart/deck-limit.ts`, settings only so far) — models
   the table's card pool as physical decks: a card in one character's hands isn't
   available to anyone else. World settings `deckLimitEnabled` (off by default)
@@ -197,9 +252,10 @@ loads).
   `specializationFeatures` / `masteryFeatures` on it, gated by `featureState` —
   so one copy is the whole set. Edited in the `daggerheartUtilitiesMenu` window
   (`src/apps/daggerheart-utilities-config.ts`), the copies fields in a
-  collapsed-by-default `<details>`. That window is the home for Daggerheart
-  *table rules we implement ourselves*, as opposed to `daggerheartAutomationMenu`,
-  which is only third-party module hookups.
+  collapsed-by-default `<details>`. That window is the home for the *table's own
+  house rules*, as opposed to `daggerheartAutomationMenu`, which automates rules
+  the system or a third-party module already states but leaves to the table to
+  apply.
   - *Counting* (`deck-pool.ts`): nothing is stored — the pool is recomputed from
     the world on every question, so deleting a card (or its owner) returns it to
     the deck with no ledger to drift. Only `character` actors hold cards; vault

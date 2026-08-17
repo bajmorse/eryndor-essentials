@@ -18,6 +18,7 @@
 
   "EE.TokenBar.Title": "Tokens on Scene",
   "EE.TokenBar.DragTooltip": "Drag to move this bar",
+  "EE.TokenBar.SurveyTooltip": "See what's on this scene and how far away it is",
   "EE.TokenBar.SelectRefused": "That token can't be selected right now. Switch back to the Select tool and try again.",
 
   "EE.Settings.HotbarPageSwap.Name": "Swap hotbar page on token selection",
@@ -66,7 +67,10 @@
 
   "EE.Settings.DaggerheartAutomationMenu.Name": "Daggerheart Automation",
   "EE.Settings.DaggerheartAutomationMenu.Label": "Configure Automation",
-  "EE.Settings.DaggerheartAutomationMenu.Hint": "Integrations with Daggerheart-specific modules, including syncing character portraits to The Void's Hybrid Form.",
+  "EE.Settings.DaggerheartAutomationMenu.Hint": "Apply Daggerheart rules the table would otherwise have to remember, and hook up Daggerheart-specific modules such as The Void.",
+
+  "EE.Settings.ReachMeleeAsVeryClose.Name": "Reach",
+  "EE.Settings.ReachMeleeAsVeryClose.Hint": "Give any character holding a feature called \"Reach\" — the Giant ancestry's — the range it describes: every weapon, ability, spell, or other feature of theirs with a Melee range works as though it were Very Close. Sheets, tooltips and target pickers all read the longer range. Nothing is saved to the cards themselves, so removing the feature (or this option) puts Melee straight back.",
 
   "EE.Settings.VoidHybridFormPortrait.Name": "Sync portrait to Hybrid Form",
   "EE.Settings.VoidHybridFormPortrait.Hint": "When The Void puts an Order of the Lycan character into Hybrid Form, change the character sheet portrait to match the transformed token art, and change it back when the form is dropped.",
@@ -87,7 +91,9 @@
   "EE.GeneralFeatures.Version": "Version",
 
   "EE.Automation.Title": "Daggerheart Automation",
-  "EE.Automation.Tabs.Void": "The Void Automations",
+  "EE.Automation.Tabs.General": "General",
+  "EE.Automation.Tabs.Void": "The Void",
+  "EE.Automation.TargetingLegend": "Targeting",
   "EE.Automation.HybridFormLegend": "Hybrid Form",
   "EE.Automation.VoidFound": "The Void (Unofficial) is active",
   "EE.Automation.VoidMissing": "The Void (Unofficial) is not installed or not enabled. These options will do nothing until it is.",

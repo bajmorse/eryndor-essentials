@@ -43,6 +43,7 @@
  * close button and controls that all mean the wrong thing here.
  */
 import { MODULE_ID, SETTINGS, TEMPLATES } from "../constants.js";
+import { openRangeSurvey, surveysAvailable } from "../integrations/target-helper-survey.js";
 
 const BAR_ID = `${MODULE_ID}-token-bar`;
 
@@ -276,6 +277,10 @@ async function buildContext(): Promise<AnyObject> {
   return {
     title: game.i18n.localize("EE.TokenBar.Title"),
     dragTooltip: game.i18n.localize("EE.TokenBar.DragTooltip"),
+    // Drawn only when the Target Helper is there to answer the click — a button
+    // that's present but inert is worse than no button.
+    canSurvey: surveysAvailable(),
+    surveyTooltip: game.i18n.localize("EE.TokenBar.SurveyTooltip"),
     tokens: tokens.map((token) => ({
       id: token.id,
       name: displayName(token),
@@ -301,9 +306,19 @@ function bind(root: HTMLElement): void {
   root.dataset["eeBound"] = "1";
 
   root.addEventListener("click", (event: Event) => {
-    const row = (event.target as HTMLElement | null)?.closest?.(
-      "[data-ee-token]",
-    ) as HTMLElement | null;
+    const target = event.target as HTMLElement | null;
+
+    // Checked before the row: the survey button is a sibling of the row button,
+    // not inside it, but both live in the same <li> — so a `closest` for the row
+    // would still match if this ran second and the markup ever nested.
+    const survey = target?.closest?.("[data-ee-survey]") as HTMLElement | null;
+    if (survey && root.contains(survey)) {
+      const tokenId = survey.dataset["eeSurvey"];
+      if (tokenId) openRangeSurvey(tokenId);
+      return;
+    }
+
+    const row = target?.closest?.("[data-ee-token]") as HTMLElement | null;
     if (!row || !root.contains(row)) return;
 
     const token = canvas.tokens?.get(row.dataset["eeToken"] ?? "");

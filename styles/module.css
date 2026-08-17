@@ -224,6 +224,15 @@
   list-style: none;
 }
 
+/* Row plus its survey button, side by side. They are siblings rather than nested
+ * because a <button> inside a <button> is invalid HTML — and they do genuinely
+ * different things: one drives the token, the other only looks at the scene. */
+.ee-token-bar .ee-token-bar-item {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+}
+
 /* One row per owned token. A <button> so it's keyboard-reachable — a player who
  * cannot see their token on the canvas shouldn't need a mouse to find it. */
 .ee-token-bar .ee-token-bar-row {
@@ -231,6 +240,7 @@
   align-items: center;
   gap: 6px;
   width: 100%;
+  min-width: 0;
   height: auto;
   margin: 0;
   padding: 2px 4px;
@@ -270,4 +280,32 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* "How far is everything from this token" — opens the Target Helper's read-only
+ * range survey. Deliberately quiet until hovered: the bar's job is selecting a
+ * token, and this must not compete with the row beside it. */
+.ee-token-bar .ee-token-bar-survey {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: none;
+  color: inherit;
+  font-size: 0.85em;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.55;
+}
+
+.ee-token-bar .ee-token-bar-survey:hover {
+  border-color: var(--color-border-highlight, #ff6400);
+  background: rgb(255 255 255 / 10%);
+  opacity: 1;
 }

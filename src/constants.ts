@@ -99,6 +99,14 @@ export const SETTINGS = {
    */
   voidHybridFormStressRevert: "voidHybridFormStressRevert",
   /**
+   * Master switch for the **Reach** rule: an actor holding a feature called
+   * "Reach" (the Giant ancestry's) uses anything with a Melee range at Very
+   * Close instead. World-scoped like every other rule switch — one answer for
+   * the whole table, or two clients would gate targeting differently. Off by
+   * default, since it changes what a printed card says.
+   */
+  reachMeleeAsVeryClose: "reachMeleeAsVeryClose",
+  /**
    * Repoint a portrait raised by Ginzzzu's Portraits & NPC Dock when the actor's
    * artwork changes underneath it — something that module doesn't do for `img`.
    * World-scoped for consistency with the other feature switches, even though the
@@ -187,9 +195,11 @@ export const MENUS = {
    */
   daggerheartAutomationMenu: "daggerheartAutomationMenu",
   /**
-   * Opens the Daggerheart Utilities window — table rules we enforce ourselves,
-   * as opposed to the third-party hookups in
-   * {@link MENUS.daggerheartAutomationMenu}. GM only.
+   * Opens the Daggerheart Utilities window — the table's *own* house rules (how
+   * many decks are in play), as opposed to
+   * {@link MENUS.daggerheartAutomationMenu}, which automates rules the system
+   * or a third-party module already states but leaves to the table to apply.
+   * GM only.
    */
   daggerheartUtilitiesMenu: "daggerheartUtilitiesMenu",
   /** Opens the Session Log window. GM only. */
@@ -234,7 +244,9 @@ export const TEMPLATES = {
   generalFeatures: `modules/${MODULE_ID}/templates/general-features.hbs`,
   /** Contents of the floating Tokens on Scene bar. */
   tokenBar: `modules/${MODULE_ID}/templates/token-bar.hbs`,
-  /** "The Void Automations" tab of the Daggerheart Automation window. */
+  /** "General" tab of the Daggerheart Automation window. */
+  automationGeneral: `modules/${MODULE_ID}/templates/daggerheart-automation-general.hbs`,
+  /** "The Void" tab of the Daggerheart Automation window. */
   automationVoid: `modules/${MODULE_ID}/templates/daggerheart-automation-void.hbs`,
   /** Body of the (untabbed) Daggerheart Utilities window. */
   daggerheartUtilities: `modules/${MODULE_ID}/templates/daggerheart-utilities.hbs`,
