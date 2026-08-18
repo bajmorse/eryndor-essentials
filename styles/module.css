@@ -309,3 +309,28 @@
   background: rgb(255 255 255 / 10%);
   opacity: 1;
 }
+
+/* Feature-automation prompt (see src/daggerheart/feature-prompt.ts). Only used
+ * when a roll offers more than one feature at once — a single offer is asked as
+ * a plain two-button question with no list. */
+.ee-feature-offers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.ee-feature-offers .ee-feature-offer {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem;
+  align-items: baseline;
+  cursor: pointer;
+}
+
+/* The hint sits under the label rather than beside the checkbox, so a wrapped
+ * description lines up with the feature name instead of the tick box. */
+.ee-feature-offers .ee-feature-offer .hint {
+  grid-column: 2;
+  margin: 0.15rem 0 0;
+}

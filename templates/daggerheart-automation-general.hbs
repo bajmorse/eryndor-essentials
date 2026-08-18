@@ -18,4 +18,17 @@
     </div>
   </fieldset>
 
+  <fieldset>
+    <legend>{{localize "EE.Automation.FeaturesLegend"}}</legend>
+
+    <div class="form-group">
+      <label for="ee-fearless">{{localize "EE.Settings.FearlessFearToHope.Name"}}</label>
+      <div class="form-fields">
+        <input type="checkbox" id="ee-fearless" name="fearlessFearToHope"
+               {{#if fearless}}checked{{/if}}>
+      </div>
+      <p class="hint">{{localize "EE.Settings.FearlessFearToHope.Hint"}}</p>
+    </div>
+  </fieldset>
+
 </section>

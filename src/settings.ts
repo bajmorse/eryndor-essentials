@@ -174,6 +174,20 @@ export function registerSettings(): void {
     onChange: () => reconcileReach(),
   });
 
+  // World-scoped: one answer for the whole table, or two clients would resolve
+  // the same Duality roll differently. On by default — this is the printed rule,
+  // which nothing currently applies, and it only ever acts on a player's own
+  // answer to the prompt. Nothing to reconcile on change: the switch is read per
+  // roll, so turning it off stops the next prompt appearing.
+  game.settings.register(MODULE_ID, SETTINGS.fearlessFearToHope, {
+    name: "EE.Settings.FearlessFearToHope.Name",
+    hint: "EE.Settings.FearlessFearToHope.Hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: true,
+  });
+
   // World-scoped: only a GM can write actor documents, and the artwork this
   // changes is shared by the whole table.
   game.settings.register(MODULE_ID, SETTINGS.voidHybridFormPortrait, {

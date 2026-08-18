@@ -72,6 +72,9 @@
   "EE.Settings.ReachMeleeAsVeryClose.Name": "Reach",
   "EE.Settings.ReachMeleeAsVeryClose.Hint": "Give any character holding a feature called \"Reach\" — the Giant ancestry's — the range it describes: every weapon, ability, spell, or other feature of theirs with a Melee range works as though it were Very Close. Sheets, tooltips and target pickers all read the longer range. Nothing is saved to the cards themselves, so removing the feature (or this option) puts Melee straight back.",
 
+  "EE.Settings.FearlessFearToHope.Name": "Fearless",
+  "EE.Settings.FearlessFearToHope.Hint": "Let a character holding the Infernis \"Fearless\" feature use it: whenever they roll with Fear, offer to mark 2 Stress and turn it into a roll with Hope. Taking the offer converts the roll before anything reacts to the Fear — the GM gains no Fear, Fear countdowns don't advance, and other features that trigger on a Fear roll never fire. Declining, or letting the prompt time out, leaves the roll exactly as it landed.",
+
   "EE.Settings.VoidHybridFormPortrait.Name": "Sync portrait to Hybrid Form",
   "EE.Settings.VoidHybridFormPortrait.Hint": "When The Void puts an Order of the Lycan character into Hybrid Form, change the character sheet portrait to match the transformed token art, and change it back when the form is dropped.",
 
@@ -94,9 +97,19 @@
   "EE.Automation.Tabs.General": "General",
   "EE.Automation.Tabs.Void": "The Void",
   "EE.Automation.TargetingLegend": "Targeting",
+  "EE.Automation.FeaturesLegend": "Character Features",
   "EE.Automation.HybridFormLegend": "Hybrid Form",
   "EE.Automation.VoidFound": "The Void (Unofficial) is active",
   "EE.Automation.VoidMissing": "The Void (Unofficial) is not installed or not enabled. These options will do nothing until it is.",
+
+  "EE.Features.DualityTitle": "Before the roll resolves",
+  "EE.Features.DualityIntro": "Hope {hope} vs Fear {fear} — a roll with {result}.",
+  "EE.Features.PromptUse": "Use it",
+  "EE.Features.PromptApply": "Use selected",
+  "EE.Features.PromptSkip": "Leave the roll alone",
+
+  "EE.Features.Fearless.Label": "Fearless",
+  "EE.Features.Fearless.Hint": "Mark 2 Stress to change this into a roll with Hope instead.",
 
   "EE.Settings.DaggerheartUtilitiesMenu.Name": "Daggerheart Utilities",
   "EE.Settings.DaggerheartUtilitiesMenu.Label": "Configure Utilities",

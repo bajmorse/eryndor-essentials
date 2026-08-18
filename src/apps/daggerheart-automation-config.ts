@@ -47,6 +47,7 @@ export class DaggerheartAutomationConfig extends ConfigWindow {
 
   protected override settingKeys = [
     SETTINGS.reachMeleeAsVeryClose,
+    SETTINGS.fearlessFearToHope,
     SETTINGS.voidHybridFormPortrait,
     SETTINGS.voidHybridFormPrototype,
     SETTINGS.voidHybridFormStressRevert,
@@ -63,6 +64,7 @@ export class DaggerheartAutomationConfig extends ConfigWindow {
       voidActive: voidModule?.active === true,
       voidVersion: String(voidModule?.["version"] ?? ""),
       reach: DaggerheartAutomationConfig.flag(SETTINGS.reachMeleeAsVeryClose),
+      fearless: DaggerheartAutomationConfig.flag(SETTINGS.fearlessFearToHope),
       portrait: DaggerheartAutomationConfig.flag(SETTINGS.voidHybridFormPortrait),
       prototype: DaggerheartAutomationConfig.flag(SETTINGS.voidHybridFormPrototype),
       stressRevert: DaggerheartAutomationConfig.flag(SETTINGS.voidHybridFormStressRevert),

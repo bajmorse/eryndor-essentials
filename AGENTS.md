@@ -240,6 +240,100 @@ loads).
     `reconcileReach` (the setting's `onChange`) exists only for the toggle
     changing mid-session, where documents are already prepared and already on
     screen and nothing would otherwise re-prepare them.
+- **Feature automation** (`src/daggerheart/feature-registry.ts`,
+  `feature-prompt.ts`, `duality-outcome.ts`) — the framework behind Daggerheart
+  features phrased *"when X happens, you can pay Y to change the outcome"*. Read
+  this before automating another one: the second feature of a kind should be a
+  registry entry, not a new interception.
+  - **Why a framework and not a hook per feature.** Three structural walls. (1)
+    Every interception the system offers is a `Hooks.call`, so a listener **cannot
+    await** a player's answer — anything with a choice must be driven from a
+    wrapped `async` method. (2) Foundry fires hooks in registration order across
+    the whole install, so nothing arbitrates between two features on the same
+    event; Fearless rewriting a Fear result *must* run before anything reacting to
+    one, which `priority` expresses and independent listeners cannot. (3) One
+    dialog per feature is unusable — three Fear-reactive features would mean three
+    prompts in arbitrary order.
+  - **The shape.** An interception point ("window") builds a context, asks
+    `offersFor(window, context)` who is interested, prompts **once** via
+    `chooseOffers`, and applies the answers in `priority` order. A feature is data
+    plus `when`/`apply`. Non-optional features apply silently before the prompt is
+    raised, so the question describes the situation actually being decided.
+  - **Matching an Item** — flag, then compendium, then name, in that order.
+    `flags.eryndor-essentials.featureId` naming the registry id is the escape
+    hatch for homebrew and renamed cards; `_stats.compendiumSource` is the robust
+    route for SRD content (survives renames, and a dragged copy still matches);
+    the printed name is the last resort. Re-derived per event, never cached — the
+    same reasoning as `reach.ts`.
+  - **Costs.** `FeatureCost.value` is always the printed magnitude ("mark 2
+    Stress" is `2`); direction is the resource's business. Daggerheart has two
+    kinds and they move opposite ways — a **reversed** resource (Stress, Hit
+    Points, Armor) counts marks used, so paying it *raises* the stored value
+    toward `max`, while a normal one (Hope) counts what you hold. Every resource
+    carries `isReversed`, and the system's own `CostField` branches on exactly
+    that, so `resourceUpdatesFor` mirrors it rather than hardcoding per resource.
+    Affordability is all-or-nothing: the system clamps on write, so 5-of-6 Stress
+    asked to mark 2 would silently mark 1 and still get the benefit.
+  - **The `dualityOutcome` window.** `DualityRoll.buildPost` (system **2.7.2**;
+    a version mismatch logs a warning) runs four things in order: DSN presets →
+    `super.buildPost` (system hooks, then **the chat message is created**) →
+    `dualityUpdate` (Fear countdowns, then queues the GM's +1 Fear) →
+    `handleTriggers` (the `fearRoll` trigger, gated on the result still being
+    Fear). All four read **`config.roll.result.duality`**, not the roll's getters —
+    so rewriting that field ahead of them means the Fear was never gained,
+    countdowns never advanced, and other features' `fearRoll` triggers **never
+    fired**. There is no equivalent "undo" afterwards.
+  - **The wrapper goes on `DHRoll.buildPost`, not `DualityRoll.buildPost`, and the
+    one level matters.** `super.buildPost` resolves past `D20Roll` (which defines
+    no `buildPost` — the chain is `Roll → BaseRoll → DHRoll → D20Roll →
+    DualityRoll`) to `DHRoll`, so patching there lands the window *between* steps
+    1 and 2: after the Hope/Fear dice presets are stamped, before anything reads
+    the result. `DHRoll` is the base every roll type inherits, so the wrapper
+    checks `roll instanceof DualityRoll` first. Both classes come from
+    `CONFIG.Dice.daggerheart`, which is assigned at script load — unlike
+    `game.system.api`, which the system only fills inside its own `init`.
+  - **The 3D dice are rolled early, by hand.** Dice So Nice animates off the *chat
+    message*, which this window is holding back — so without this the player would
+    be asked to convert a result they had not watched arrive. `showDiceBeforePrompt`
+    calls `game.dice3d.showForRoll(roll, game.user, true)` and awaits it, but only
+    when a prompt is actually going to be raised; a roll that offers nothing keeps
+    the system's ordinary timing. This is only correct from `DHRoll.buildPost`,
+    because step 1 has by then stamped the presets that make the manual animation
+    match the automatic one. Two follow-ups: `roll.options.eeDiceShown` is set and
+    a `preCreateChatMessage` hook turns it into `flags.dice-so-nice.skip` (DSN's
+    `shouldInterceptMessage` bails on that flag) so the dice don't roll twice, and
+    `config.mute = true` stops the message replaying the dice sound — the same
+    thing `DamageRoll.buildPost` does when it has rolled dice itself. Verified
+    against Dice So Nice **6.2.9**. All of it no-ops when DSN isn't installed, and
+    `showForRoll` resolving `false` (blind roll, or its visibility setting) leaves
+    both the flag and the sound alone.
+  - **Flipping the result** is done with a persisted marker, not by swapping dice.
+    `withHope`/`withFear` are getters comparing the two dice totals with no setter,
+    the chat card renders from the *Roll object* (`roll.totalLabel` in the system's
+    `roll-part.hbs`), and the Roll is rebuilt from its serialized form on reload —
+    so an instance-level override would vanish for every other client. Instead
+    `roll.options.eeDualityOverride` (dot-free on purpose: Foundry's object helpers
+    treat a dot as a path) round-trips through `toJSON`, and the two getters are
+    patched at `init` to honour it. `totalLabel` and `isCritical` follow for free.
+    The patch is installed **unconditionally**, whatever the settings say — a
+    message converted last session still has to render as Hope today.
+  - **Paying** folds into `config.resourceUpdates`, so the cost, the suppressed
+    Fear and the gained Hope land as a single actor write. Every path that builds
+    a duality roll (`Actor#diceRoll`, `DHBaseAction#use`) flushes that map once the
+    roll returns.
+  - Dismissal, Escape and the 30s timeout all mean "leave the roll alone" — every
+    caller is mid-pipeline holding something back, so the safe answer is always to
+    let the unmodified outcome through.
+- **Fearless** (`src/daggerheart/fearless.ts`) — the Infernis ancestry's "When you
+  roll with Fear, you can mark 2 Stress to change it into a roll with Hope
+  instead." The SRD ships it as a `feature` Item whose single action only charges
+  the Stress: no effects, no triggers, nothing converts the result. World setting
+  `fearlessFearToHope`, **on** by default (it is the printed rule, and it acts only
+  on the player's own answer), on the **General** tab of `daggerheartAutomationMenu`.
+  Registered on `dualityOutcome` at priority 10 — rewriters sort ahead of reactors,
+  which belong at 50+. The +1 Hope is deliberately *not* applied here: the system's
+  own `addDualityResourceUpdates` runs afterwards, reads the rewritten result, and
+  grants it. The only thing owed is the 2 Stress.
 - **Deck Limit** (`src/daggerheart/deck-limit.ts`, settings only so far) — models
   the table's card pool as physical decks: a card in one character's hands isn't
   available to anyone else. World settings `deckLimitEnabled` (off by default)

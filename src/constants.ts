@@ -107,6 +107,18 @@ export const SETTINGS = {
    */
   reachMeleeAsVeryClose: "reachMeleeAsVeryClose",
   /**
+   * Master switch for automating **Fearless** (Infernis): offer to mark 2 Stress
+   * and turn a roll with Fear into a roll with Hope, before the system has acted
+   * on the Fear at all. See `daggerheart/fearless.ts`.
+   *
+   * World-scoped like every other rule switch — one answer for the whole table,
+   * or two clients would resolve the same roll differently. **On** by default,
+   * for the same reason as {@link SETTINGS.voidHybridFormStressRevert}: this is
+   * the rule exactly as printed on the card, which nothing currently applies, and
+   * it does nothing at all unless a player chooses it at the prompt.
+   */
+  fearlessFearToHope: "fearlessFearToHope",
+  /**
    * Repoint a portrait raised by Ginzzzu's Portraits & NPC Dock when the actor's
    * artwork changes underneath it — something that module doesn't do for `img`.
    * World-scoped for consistency with the other feature switches, even though the
@@ -234,6 +246,17 @@ export const FLAGS = {
    * each card is the source UUID of a pending selection.
    */
   deckHolds: "deckHolds",
+  /**
+   * Marks an Item as granting an automated feature, naming the registry id it
+   * should be matched as (`"fearless"`, …). See `daggerheart/feature-registry.ts`.
+   *
+   * The escape hatch for homebrew: a feature is normally recognised by the
+   * compendium it came from, falling back to its printed name, and neither finds
+   * a card the table wrote itself. Set this by hand on such an Item and it joins
+   * the automation. Checked ahead of both other routes, so it also works to point
+   * a renamed or reworded card at the rule it is meant to be.
+   */
+  featureId: "featureId",
 } as const;
 
 /** Foundry template paths (served from the module root at runtime). */
