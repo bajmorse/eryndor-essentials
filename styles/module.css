@@ -334,3 +334,67 @@
   grid-column: 2;
   margin: 0.15rem 0 0;
 }
+
+/* The prompt's "what just happened" banner: two round portraits with the
+ * verdict between them (see PromptHeadline in src/daggerheart/feature-prompt.ts).
+ * Both parties are the same flex basis so the verdict stays optically centred
+ * however lopsided the two names are. */
+.ee-feature-prompt .ee-feature-headline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 0.25rem 0 1rem;
+}
+
+.ee-feature-prompt .ee-feature-party {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  text-align: center;
+}
+
+.ee-feature-prompt .ee-feature-portrait {
+  width: 68px;
+  height: 68px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  /* Portraits are rarely square; cover crops rather than squashing a face. */
+  object-fit: cover;
+  object-position: top center;
+  border: 2px solid var(--color-border-dark, #000);
+  background: rgb(0 0 0 / 25%);
+}
+
+/* Long names wrap rather than stretching the dialog past the verdict. */
+.ee-feature-prompt .ee-feature-party-name {
+  font-weight: bold;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+/* Sits level with the portraits, not with the names below them. The verdict is
+ * the whole message — deliberately no roll total beside it, so it carries the
+ * middle on its own. */
+.ee-feature-prompt .ee-feature-verdict {
+  flex: 0 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 68px;
+}
+
+.ee-feature-prompt .ee-feature-verdict-label {
+  font-size: var(--font-size-20, 1.25rem);
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* The offer below the banner, when there is only one and so no checkbox list. */
+.ee-feature-prompt .ee-feature-offer-single {
+  margin: 0;
+}

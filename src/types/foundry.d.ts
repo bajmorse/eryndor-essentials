@@ -192,6 +192,13 @@ declare global {
   const ChatMessage: {
     create(data: AnyObject): Promise<AnyObject>;
     getSpeaker(data: AnyObject): AnyObject;
+    /**
+     * Stamp `whisper` and `blind` onto message data for a visibility mode (a key
+     * of `CONFIG.ChatMessage.modes` — `public`, `self`, `gm`, `blind`, `ic`, …).
+     * Mutates and returns the object it is given. An omitted mode falls back to
+     * the client's `core.messageMode` setting.
+     */
+    applyMode(data: AnyObject, mode?: string): AnyObject;
   };
 
   /**

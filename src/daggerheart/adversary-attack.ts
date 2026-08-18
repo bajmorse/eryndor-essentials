@@ -45,6 +45,7 @@
  */
 import { LOG_PREFIX } from "../constants.js";
 import { askUser, responderFor, toPromptOffers } from "./feature-ask.js";
+import type { PromptHeadline, PromptParty } from "./feature-prompt.js";
 import {
   applyOffer,
   offersFor,
@@ -53,9 +54,13 @@ import {
   type FeatureCost,
 } from "./feature-registry.js";
 import { distanceBetweenActors, withinBand, type RangeBand } from "./range-bands.js";
-import { clearEarlyDice, registerRollWindow, showDiceEarly } from "./roll-pipeline.js";
+import { clearEarlyDice, registerRollWindow, rollTypeOf, showDiceEarly } from "./roll-pipeline.js";
 
-/** `CONFIG.DH.GENERAL.rollTypes.attack.id` — the only roll type this window handles. */
+/**
+ * `CONFIG.DH.GENERAL.rollTypes.attack.id` — the only roll type this window
+ * handles. Read through {@link rollTypeOf} rather than off `config.roll.type`,
+ * which by `buildPost` has been overwritten with the action's `actionType`.
+ */
 const ATTACK = "attack";
 
 /** `D20Roll.ADV_MODE.DISADVANTAGE`. On a d20 roll this means `2d20kl`. */
@@ -79,8 +84,13 @@ export interface AdversaryAttackContext extends FeatureContextBase {
   total: number;
   /** Whether the attack roll was a critical. */
   isCritical: boolean;
-  /** Names of the targets it hit, for the prompt to quote back. */
-  hitTargets: string[];
+  /**
+   * The targets it hit, as name and portrait. Taken from `config.targets`, which
+   * the system already stamps with `token.name` and `token.actor.img` — so this
+   * shows the token's name for an unlinked "Minor Treant #2" rather than the
+   * statblock's.
+   */
+  hits: PromptParty[];
   /** Whether *this* actor is one of the targets it hit. */
   isHitTarget: boolean;
   /** Set once a feature has asked for the reroll; a second one would be wasted. */
@@ -148,7 +158,10 @@ function buildContext(
     distance,
     total: Number(config["roll"]?.["total"] ?? 0),
     isCritical: roll["isCritical"] === true,
-    hitTargets: hit.map((target) => String(target["name"] ?? "")).filter(Boolean),
+    hits: hit.map((target) => ({
+      name: String(target["name"] ?? ""),
+      img: target["img"] ? String(target["img"]) : undefined,
+    })),
     isHitTarget: hit.some((target) => String(target["actorId"] ?? "") === String(actor["uuid"] ?? "")),
     rerollRequested: false,
 
@@ -217,20 +230,50 @@ async function rerollWithDisadvantage(
   return rerolled;
 }
 
-/** The line at the top of the prompt, describing what just happened. */
+/**
+ * The line at the top of the prompt, describing what just happened. Names the
+ * attacker and who it landed on, but not the total — same reasoning as
+ * {@link PromptHeadline.verdict}.
+ */
 function introFor(context: AdversaryAttackContext): string {
   const data = {
     attacker: String(context.attacker["name"] ?? ""),
-    total: context.total,
-    targets: context.hitTargets.join(", "),
+    targets: context.hits.map((hit) => hit.name).join(", "),
   };
 
   return game.i18n.format(
-    context.hitTargets.length > 0
+    context.hits.length > 0
       ? "EE.Features.AdversaryAttackIntro"
       : "EE.Features.AdversaryAttackIntroNoTarget",
     data,
   );
+}
+
+/**
+ * The banner form of the same thing: attacker, verdict, target.
+ *
+ * Only when the attack hit exactly one target — two portraits cannot honestly
+ * depict a strike that landed on three people, and that case falls back to
+ * {@link introFor}, whose sentence lists them all. The attacker's portrait comes
+ * from the actor rather than its token texture, because a top-down or a bare
+ * marker token reads as nothing at all once it is masked into a circle.
+ */
+function headlineFor(context: AdversaryAttackContext): PromptHeadline | undefined {
+  const target = context.hits.length === 1 ? context.hits[0] : undefined;
+  if (!target) return undefined;
+
+  const source: PromptParty = {
+    name: String(context.attacker["name"] ?? ""),
+    img: context.attacker["img"] ? String(context.attacker["img"]) : undefined,
+  };
+
+  return {
+    source,
+    target,
+    verdict: game.i18n.localize(
+      context.isCritical ? "EE.Features.VerdictCritical" : "EE.Features.VerdictHit",
+    ),
+  };
 }
 
 /**
@@ -250,10 +293,16 @@ async function runAdversaryAttackWindow(
 ): Promise<AnyObject | void> {
   // Only populated when the attack had targets or a set difficulty. Without it
   // nothing here knows whether the attack succeeded — see the header note.
-  if (config?.["roll"]?.["success"] !== true) return;
+  if (config?.["roll"]?.["success"] !== true) {
+    console.debug(`${LOG_PREFIX} Adversary attack: not a successful attack, no reactions offered.`);
+    return;
+  }
 
   const attacker = rollActor(roll, config);
-  if (!attacker || !canvas.ready) return;
+  if (!attacker || !canvas.ready) {
+    console.debug(`${LOG_PREFIX} Adversary attack: no attacker or no canvas, no reactions offered.`);
+    return;
+  }
 
   let dieShown = false;
   let accepted: AdversaryAttackContext | null = null;
@@ -262,11 +311,19 @@ async function runAdversaryAttackWindow(
     // Null means the range is unmeasurable, which this window treats as "no",
     // never as "probably close enough".
     const distance = distanceBetweenActors(attacker, actor);
-    if (distance === null) continue;
+    if (distance === null) {
+      console.debug(`${LOG_PREFIX} Adversary attack: cannot measure range to ${actor["name"]}.`);
+      continue;
+    }
 
     const context = buildContext(roll, config, actor, attacker, distance);
     const offers = offersFor("adversaryAttack", context);
-    if (offers.length === 0) continue;
+    if (offers.length === 0) {
+      console.debug(
+        `${LOG_PREFIX} Adversary attack: nothing for ${actor["name"]} to react with at ${distance}.`,
+      );
+      continue;
+    }
 
     for (const offer of offers.filter((entry) => !entry.feature.optional)) {
       await applyOffer(context, offer);
@@ -284,6 +341,7 @@ async function runAdversaryAttackWindow(
       const chosen = await askUser(responderFor(actor), {
         title: game.i18n.localize("EE.Features.AdversaryAttackTitle"),
         intro: introFor(context),
+        headline: headlineFor(context),
         offers: toPromptOffers(optional),
       });
 
@@ -328,7 +386,7 @@ export function registerAdversaryAttack(): void {
       // A character's attack is a DualityRoll, which extends D20Roll; that one
       // belongs to the other window.
       !(roll instanceof (DualityRoll as unknown as new () => unknown)) &&
-      config?.["roll"]?.["type"] === ATTACK,
+      rollTypeOf(config) === ATTACK,
     run: (roll, config, message) => runAdversaryAttackWindow(roll, config, message),
   });
 }

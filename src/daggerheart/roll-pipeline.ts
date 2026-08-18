@@ -58,6 +58,30 @@ const DSN_SHOWN = "eeDiceShown";
 const DSN_SKIP_FLAG = "flags.dice-so-nice.skip";
 
 /**
+ * Where the roll's *declared* type is kept, because the system throws it away.
+ *
+ * `RollField.prepareConfig` sets `config.roll.type` to the action's roll type —
+ * `attack`, `spellcast`, `trait`, `diceSet`. But `D20Roll.buildEvaluate` then
+ * overwrites it:
+ *
+ * ```js
+ * await super.buildEvaluate(roll, config, message);  // config.roll = { ...old, total, formula, dice }
+ * const data = config.roll;
+ * data.type = config.actionType;                     // 'action' | 'reaction'
+ * ```
+ *
+ * `config.actionType` is a different taxonomy entirely (whether the action is
+ * taken on your turn or in reaction to something), so from `buildPost` onwards
+ * there is no longer anything on the config that says "this was an attack". The
+ * value is captured at `daggerheart.preRoll` — the first line of
+ * `buildConfigure`, long before the overwrite — and parked on the config itself
+ * rather than on `config.roll`, which `buildEvaluate` replaces wholesale.
+ *
+ * Dot-free for the same reason as {@link DSN_SHOWN}.
+ */
+const ROLL_TYPE = "eeRollType";
+
+/**
  * One interception point on the roll pipeline.
  *
  * Split into {@link matches} and {@link run} so the pipeline can tell "this
@@ -89,6 +113,46 @@ export function registerRollWindow(window: RollWindow): void {
   windows.push(window);
 }
 
+/** Who is going to be able to see the chat message this roll produces. */
+export interface RollVisibility {
+  /** User ids it is whispered to, or null when the whole table sees it. */
+  whisper: string[] | null;
+  /** Whether even those recipients are kept from the result. */
+  blind: boolean;
+}
+
+/**
+ * Work out that visibility ahead of the message existing.
+ *
+ * `DHRoll.toMessage` creates the message with `{ messageMode:
+ * config.selectedMessageMode }`, which core turns into `whisper`/`blind` via
+ * `ChatMessage.applyMode`. Anything this module does *before* the message —
+ * animating dice, most of all — has to respect the same decision, so it asks
+ * core the same question rather than reimplementing the mapping. An absent mode
+ * falls back to the client's `core.messageMode` setting inside `applyMode`,
+ * which is exactly what `toMessage` does with its own `??=`.
+ *
+ * A `speaker` is supplied because `applyMode` reads one for in-character modes.
+ */
+export function rollVisibility(config: AnyObject): RollVisibility {
+  try {
+    const mode = config["selectedMessageMode"];
+    const applied = ChatMessage.applyMode(
+      { speaker: {} },
+      typeof mode === "string" && mode ? mode : undefined,
+    );
+    const whisper = Array.isArray(applied["whisper"]) ? applied["whisper"].map(String) : [];
+
+    return { whisper: whisper.length > 0 ? whisper : null, blind: applied["blind"] === true };
+  } catch (error) {
+    // Showing dice to everyone is what the system does for an ordinary public
+    // roll, so it is the least surprising thing to fall back to — but say so,
+    // because it is also the answer that leaks a private one.
+    console.warn(`${LOG_PREFIX} Roll pipeline: could not read the roll's visibility.`, error);
+    return { whisper: null, blind: false };
+  }
+}
+
 /**
  * Roll the 3D dice now, ahead of a prompt, and mark the roll so the chat message
  * does not roll them again.
@@ -109,11 +173,17 @@ export async function showDiceEarly(roll: AnyObject, config: AnyObject): Promise
   if (typeof dice3d?.showForRoll !== "function") return false;
 
   try {
-    // `synchronize: true` so the rest of the table watches the same dice.
+    // `synchronize: true` so the rest of the table watches the same dice, but
+    // only the people the message itself will reach: on a GM's private or blind
+    // roll, animating for everyone would show the table dice the chat card is
+    // about to hide. `showForRoll(roll, user, synchronize, users, blind)` is the
+    // same call the system's own `DamageRoll.buildPost` makes, with the whisper
+    // list and blind flag taken off the message it is about to create.
+    const { whisper, blind } = rollVisibility(config);
+    const shown = await dice3d.showForRoll(roll, game.user, true, whisper, blind);
     // Resolves false when Dice So Nice declines (a blind roll, or its visibility
     // setting) — in which case the message path would not have animated either,
     // so leave both the marker and the sound alone.
-    const shown = await dice3d.showForRoll(roll, game.user, true);
     if (shown === false) return false;
 
     if (roll["options"]) roll["options"][DSN_SHOWN] = true;
@@ -146,6 +216,41 @@ export function clearEarlyDice(config: AnyObject): void {
 
   delete config[DSN_SHOWN];
   config["mute"] = false;
+}
+
+/**
+ * The roll type a window should match on — `attack`, `spellcast`, `trait`,
+ * `diceSet` — or null when it is not knowable.
+ *
+ * Null rather than falling back to the live `config.roll.type`: after
+ * `buildEvaluate` that field holds an `actionType`, so the fallback would answer
+ * a different question with the same confidence. A window that cannot tell what
+ * kind of roll this was should decline, not guess.
+ */
+export function rollTypeOf(config: AnyObject | null | undefined): string | null {
+  const type = config?.[ROLL_TYPE];
+  return typeof type === "string" && type ? type : null;
+}
+
+/**
+ * Record each roll's declared type before the system overwrites it.
+ *
+ * `daggerheart.preRoll` is fired for every roll at the top of
+ * `DHRoll.buildConfigure` (`config.hooks` always ends in `''`, which is what
+ * produces the unsuffixed name), so this sees every roll the system makes —
+ * including ones a dialog later reconfigures, since the dialog cannot change the
+ * type. Returning nothing keeps the roll going: only an explicit `false` from a
+ * `preRoll` listener would cancel it.
+ */
+function registerRollTypeCapture(): void {
+  Hooks.on("daggerheart.preRoll", (config: AnyObject) => {
+    try {
+      const type = config?.["roll"]?.["type"];
+      if (typeof type === "string" && type) config[ROLL_TYPE] = type;
+    } catch (error) {
+      console.warn(`${LOG_PREFIX} Roll pipeline: could not read the roll type.`, error);
+    }
+  });
 }
 
 /**
@@ -203,6 +308,7 @@ export function installRollPipeline(): void {
     return;
   }
 
+  registerRollTypeCapture();
   registerDiceSuppression();
 
   DHRoll["buildPost"] = async function (

@@ -46,18 +46,101 @@ export interface PromptOffer {
   itemName: string;
 }
 
+/** One side of a {@link PromptHeadline} — who did it, or who it was done to. */
+export interface PromptParty {
+  /** Display name. */
+  name: string;
+  /** Portrait path. Falls back to Foundry's own placeholder when absent. */
+  img?: string;
+}
+
+/**
+ * The "what just happened" banner: two portraits with the verdict between them.
+ *
+ * A window supplies this only when the event really is one party acting on
+ * another *and* there is exactly one of each — otherwise {@link
+ * PromptRequest.intro} carries the sentence instead. Two circles cannot honestly
+ * show an attack that hit three people, and inventing a "+2" badge for it would
+ * be a worse lie than a sentence that just lists them.
+ */
+export interface PromptHeadline {
+  /** Left-hand party: whoever acted. */
+  source: PromptParty;
+  /** Right-hand party: whoever it landed on. */
+  target: PromptParty;
+  /**
+   * Localized verdict — "Hit", "Critical".
+   *
+   * Deliberately no accompanying number. What a reacting player needs is whether
+   * the attack landed; the total it landed with changes nothing they can decide,
+   * and printing it hands out a figure the chat card may be about to withhold.
+   */
+  verdict: string;
+}
+
 /** Everything needed to raise the dialog, and nothing that can't cross a socket. */
 export interface PromptRequest {
   title: string;
+  /**
+   * The event as a sentence. Always supplied: it is what renders when there is
+   * no {@link headline}, and it is the form that survives any shape of event.
+   */
   intro: string;
+  /** The banner form of the same information, when the event fits it. */
+  headline?: PromptHeadline;
   offers: PromptOffer[];
 }
 
-/** One row of the dialog: what the feature is, and which card it came from. */
+/**
+ * Foundry's own stand-in portrait, used when a party has no image. A core asset,
+ * so it is present in every install without this module shipping one.
+ */
+const PLACEHOLDER_PORTRAIT = "icons/svg/mystery-man.svg";
+
+/** One party: a round portrait with the name beneath it. */
+function renderParty(party: PromptParty): string {
+  return `<div class="ee-feature-party">
+    <img class="ee-feature-portrait" src="${escapeHtml(
+      party.img || PLACEHOLDER_PORTRAIT,
+    )}" alt="" draggable="false">
+    <span class="ee-feature-party-name">${escapeHtml(party.name)}</span>
+  </div>`;
+}
+
+/**
+ * The banner: acting party, verdict, receiving party.
+ *
+ * The names sit *under* the portraits rather than beside them, which keeps the
+ * verdict optically centred however long the two names are — a "Minor Treant"
+ * against a "Zella Ironstone" would otherwise push it well off to one side.
+ */
+function renderHeadline(headline: PromptHeadline): string {
+  return `<div class="ee-feature-headline">
+    ${renderParty(headline.source)}
+    <div class="ee-feature-verdict">
+      <span class="ee-feature-verdict-label">${escapeHtml(headline.verdict)}</span>
+    </div>
+    ${renderParty(headline.target)}
+  </div>`;
+}
+
+/**
+ * One row of the dialog: what the feature is, and which card it came from.
+ *
+ * The card's name is shown only when it differs from the feature's label — for
+ * most features they are the same string, and "Blood Maledict (Blood Maledict)"
+ * is noise. It earns its place when a homebrew rewrite has been flagged into an
+ * SRD feature's automation and the two names genuinely diverge.
+ */
 function describeOffer(offer: PromptOffer): string {
-  return `<strong>${escapeHtml(offer.label)}</strong> <span class="hint">(${escapeHtml(
-    offer.itemName,
-  )})</span>${offer.hint ? `<p class="hint">${escapeHtml(offer.hint)}</p>` : ""}`;
+  const source =
+    offer.itemName && offer.itemName !== offer.label
+      ? ` <span class="hint">(${escapeHtml(offer.itemName)})</span>`
+      : "";
+
+  return `<strong>${escapeHtml(offer.label)}</strong>${source}${
+    offer.hint ? `<p class="hint">${escapeHtml(offer.hint)}</p>` : ""
+  }`;
 }
 
 /**
@@ -109,17 +192,21 @@ async function waitWithTimeout(config: AnyObject): Promise<unknown> {
  * applied without asking.
  */
 export async function chooseOffers(request: PromptRequest): Promise<Set<string>> {
-  const { title, intro, offers } = request;
+  const { title, intro, headline, offers } = request;
   if (offers.length === 0) return new Set();
 
   const chosen = new Set<string>();
-  const introHtml = `<p>${escapeHtml(intro)}</p>`;
+  const introHtml = headline ? renderHeadline(headline) : `<p>${escapeHtml(intro)}</p>`;
+  // Scopes the stylesheet, and keeps the banner's rules from reaching any other
+  // dialog that happens to use the same element names.
+  const classes = ["ee-feature-prompt"];
 
   if (offers.length === 1) {
     const only = offers[0]!;
     const answer = await waitWithTimeout({
+      classes,
       window: { title },
-      content: `${introHtml}<p>${describeOffer(only)}</p>`,
+      content: `${introHtml}<p class="ee-feature-offer-single">${describeOffer(only)}</p>`,
       buttons: [
         {
           action: "use",
@@ -146,6 +233,7 @@ export async function chooseOffers(request: PromptRequest): Promise<Set<string>>
     .join("");
 
   const answer = await waitWithTimeout({
+    classes,
     window: { title },
     content: `${introHtml}<div class="ee-feature-offers">${rows}</div>`,
     buttons: [

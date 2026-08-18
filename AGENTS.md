@@ -299,6 +299,21 @@ loads).
     that returns a Roll **replaces** the one the rest of `buildPost` posts and acts
     on; returning nothing keeps it. A throw from any window is swallowed, so a
     broken feature degrades to an ordinary roll rather than eating the chat card.
+  - **The system destroys `config.roll.type` before any window sees it — use
+    `rollTypeOf(config)`.** `RollField.prepareConfig` sets it to the action's roll
+    type (`attack`, `spellcast`, `trait`, `diceSet`), but `D20Roll.buildEvaluate`
+    then does `data.type = config.actionType`, where `actionType` is an unrelated
+    taxonomy (`action` | `reaction`, from `CONFIG.DH.ITEM.actionTypes`, initial
+    `'action'`). So from `buildPost` onward nothing on the config says what kind
+    of roll this was, and a `matches` gating on `config.roll.type === 'attack'`
+    silently never fires — no error, no prompt, which is exactly how it presented.
+    `roll-pipeline.ts` captures the real type at `daggerheart.preRoll` (the first
+    line of `buildConfigure`; `config.hooks` always ends in `''`, which produces
+    the unsuffixed hook name) and parks it on `config.eeRollType` — on the config
+    itself, because `DHRoll.buildEvaluate` **replaces `config.roll` wholesale**
+    with `{...roll.options.roll, total, formula, dice}`. `rollTypeOf` returns null
+    rather than falling back to the live field, since after evaluation that field
+    answers a different question with the same confidence.
   - **The 3D dice are rolled early, by hand.** Dice So Nice animates off the *chat
     message*, which these windows are holding back — so without this the player
     would be asked to react to a result they had not watched arrive. `showDiceEarly`
@@ -313,7 +328,17 @@ loads).
     thing `DamageRoll.buildPost` does when it has rolled dice itself. Verified
     against Dice So Nice **6.2.9**. All of it no-ops when DSN isn't installed, and
     `showForRoll` resolving `false` (blind roll, or its visibility setting) leaves
-    both the flag and the sound alone. A window that **replaces** the roll must
+    both the flag and the sound alone. The dice are shown **only to whoever the
+    chat card will reach**: `rollVisibility(config)` asks core's
+    `ChatMessage.applyMode` what `config.selectedMessageMode` means in
+    `whisper`/`blind` terms — the same mode `DHRoll.toMessage` passes to
+    `ChatMessage.create` — and those go to `showForRoll`'s 4th and 5th arguments,
+    exactly as the system's own `DamageRoll.buildPost` does. Without that, a GM's
+    private roll animates for the whole table and then posts a card only the GM
+    can read. Note a roll's visibility is **not** ours to choose: it is one
+    message built from one config, so a replaced roll inherits whatever the
+    original had, and `core.messageMode` (the chat roll-mode dropdown) is what
+    decides it. A window that **replaces** the roll must
     call `clearEarlyDice(config)` first: the dice the table watched belong to the
     discarded roll, and the replacement's have never been seen.
   - **Flipping the result** is done with a persisted marker, not by swapping dice.
@@ -330,6 +355,22 @@ loads).
     Fear and the gained Hope land as a single actor write. Every path that builds
     a duality roll (`Actor#diceRoll`, `DHBaseAction#use`) flushes that map once the
     roll returns.
+  - **The prompt's banner.** A window may pass `headline` alongside `intro`: two
+    round portraits with the verdict ("Hit", "Critical") between them, rendered by
+    `feature-prompt.ts` and styled under `.ee-feature-prompt` in `styles/module.css`.
+    Supply it only when the event really is one party acting on **exactly one**
+    other — `adversary-attack.ts` falls back to the `intro` sentence when an
+    attack hit several targets, because two circles cannot honestly show three
+    people. Portraits come from `actor.img` (and `config.targets[].img`, which the
+    system already stamps with `token.actor.img`) rather than token textures,
+    since a top-down marker reads as nothing masked into a circle; a missing one
+    falls back to core's `icons/svg/mystery-man.svg`. Everything in
+    `PromptRequest` stays flat, localized and JSON-safe — it has to cross a socket.
+    **No roll totals in a prompt.** Neither the banner nor the `intro` sentence
+    names the number: whether the attack landed is what a reacting player decides
+    on, the total changes nothing they can do about it, and the chat card may be
+    about to withhold it (see the visibility note above). Keep new windows to the
+    same line.
   - Dismissal, Escape and the 30s timeout all mean "leave the roll alone" — every
     caller is mid-pipeline holding something back, so the safe answer is always to
     let the unmodified outcome through.

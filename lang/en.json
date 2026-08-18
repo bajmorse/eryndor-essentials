@@ -109,6 +109,8 @@
   "EE.Features.PromptUse": "Use it",
   "EE.Features.PromptApply": "Use selected",
   "EE.Features.PromptSkip": "Leave the roll alone",
+  "EE.Features.VerdictHit": "Hit",
+  "EE.Features.VerdictCritical": "Critical",
 
   "EE.Features.Fearless.Label": "Fearless",
   "EE.Features.Fearless.Hint": "Mark 2 Stress to change this into a roll with Hope instead.",
@@ -116,8 +118,8 @@
   "EE.Features.AwaitingReaction": "Waiting for {user} to answer a reaction prompt…",
 
   "EE.Features.AdversaryAttackTitle": "Before the attack lands",
-  "EE.Features.AdversaryAttackIntro": "{attacker} succeeded on an attack roll with a {total}, hitting {targets}.",
-  "EE.Features.AdversaryAttackIntroNoTarget": "{attacker} succeeded on an attack roll with a {total}.",
+  "EE.Features.AdversaryAttackIntro": "{attacker} succeeded on an attack roll, hitting {targets}.",
+  "EE.Features.AdversaryAttackIntroNoTarget": "{attacker} succeeded on an attack roll.",
 
   "EE.Features.BloodMaledict.Label": "Blood Maledict",
   "EE.Features.BloodMaledict.Hint": "Spend 3 Hope to make them reroll this attack with disadvantage.",
