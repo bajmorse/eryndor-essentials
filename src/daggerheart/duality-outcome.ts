@@ -2,7 +2,7 @@
  * The **duality outcome** window — the point at which a Duality roll's Hope/Fear
  * result can still be rewritten before anything in the system has acted on it.
  *
- * ## Where the interception goes, and why it has to be here
+ * ## Why this window exists where it does
  *
  * `DualityRoll.buildPost` (system 2.7.2) runs four things in a fixed order:
  *
@@ -21,15 +21,11 @@
  * feature's `fearRoll` trigger never fired at all. Reconciling *after* the fact
  * would have to undo four separate effects and could not un-fire a trigger.
  *
- * The system's own hooks cannot be used for this: they are all `Hooks.call`, so a
- * listener cannot await a player's answer. Hence a wrapper on the `async` static.
- *
- * **The wrapper sits between steps 1 and 2**, by patching `DHRoll.buildPost` —
- * what `super.buildPost` resolves to — rather than `DualityRoll.buildPost` itself.
- * That is what lets the 3D dice be rolled *before* the player is asked (see
- * {@link showDiceBeforePrompt}): the presets from step 1 are already in place, so
- * a hand-rolled animation is indistinguishable from the automatic one, while
- * everything from step 2 onwards still reads the converted result.
+ * The window is installed via `roll-pipeline.ts`, which patches `DHRoll.buildPost`
+ * — what `super.buildPost` in step 1's method resolves to. That lands it between
+ * steps 1 and 2, which is also what lets the 3D dice be rolled *before* the player
+ * is asked: the presets from step 1 are already in place, so a hand-rolled
+ * animation is indistinguishable from the automatic one.
  *
  * ## Why the result is flipped by a flag rather than by swapping dice
  *
@@ -47,9 +43,17 @@
  * everyone, permanently. `totalLabel` and `isCritical` follow on their own —
  * the first derives from these getters, and the second is unaffected because a
  * converted roll had unequal dice and still does.
+ *
+ * ## Who is asked
+ *
+ * Whoever made the roll. A Duality roll is almost always a player rolling for
+ * their own character, so the client holding the pipeline open is already the
+ * client whose Stress is being spent — unlike the adversary-attack window, which
+ * has to go looking for its answerer (see `feature-ask.ts`).
  */
 import { LOG_PREFIX } from "../constants.js";
 import { chooseOffers } from "./feature-prompt.js";
+import { toPromptOffers } from "./feature-ask.js";
 import {
   applyOffer,
   offersFor,
@@ -57,13 +61,7 @@ import {
   type FeatureContextBase,
   type FeatureCost,
 } from "./feature-registry.js";
-
-/**
- * The system version this was read against. The wrapper reaches into unexported
- * internals with no stability guarantee, so a mismatch is worth one loud line in
- * the console — silently wrong behaviour at the table is far worse than a warning.
- */
-const VERIFIED_SYSTEM_VERSION = "2.7.2";
+import { registerRollWindow, showDiceEarly } from "./roll-pipeline.js";
 
 /**
  * Key under `roll.options` holding a rewritten result: `1` for Hope, `-1` for
@@ -75,16 +73,6 @@ const VERIFIED_SYSTEM_VERSION = "2.7.2";
  * into a nested object and never read back.
  */
 const DUALITY_OVERRIDE = "eeDualityOverride";
-
-/**
- * Marks a roll whose 3D dice this module has already rolled by hand, so the chat
- * message it eventually produces does not roll them a second time. Lives in
- * `roll.options` beside {@link DUALITY_OVERRIDE}, and dot-free for the same reason.
- */
-const DSN_SHOWN = "eeDiceShown";
-
-/** Dice So Nice's own "do not animate this message" flag. */
-const DSN_SKIP_FLAG = "flags.dice-so-nice.skip";
 
 /** The system's own duality encoding, shared by `config.roll.result.duality`. */
 const WITH_HOPE = 1;
@@ -103,7 +91,7 @@ export interface DualityOutcomeContext extends FeatureContextBase {
   /** The two dice, for the prompt to quote back. */
   hopeTotal: number;
   fearTotal: number;
-  /** Rewrite the result. Everything downstream of the wrapper reads the change. */
+  /** Rewrite the result. Everything downstream of the window reads the change. */
   setDuality(next: number): void;
 }
 
@@ -227,43 +215,6 @@ function buildContext(roll: AnyObject, config: AnyObject, actor: AnyObject): Dua
 }
 
 /**
- * Roll the 3D dice ourselves, before the prompt, and stop them being rolled a
- * second time when the chat message finally lands.
- *
- * Dice So Nice animates off the *chat message*, which is exactly the thing this
- * window holds back — so without this the player would be asked to convert a
- * result they had not yet watched arrive. Taking the animation over is only safe
- * from inside `DHRoll.buildPost`: by then `DualityRoll.buildPost` has already run
- * `setDiceSoNiceForDualityRoll`, which stamps the Hope/Fear presets onto
- * `roll.dice[].options`, so the manual roll looks exactly like the automatic one.
- *
- * Returns whether the animation actually played.
- */
-async function showDiceBeforePrompt(roll: AnyObject, config: AnyObject): Promise<boolean> {
-  const dice3d = game["dice3d"];
-  if (typeof dice3d?.showForRoll !== "function") return false;
-
-  try {
-    // `synchronize: true` so the rest of the table watches the same dice.
-    // Resolves false when Dice So Nice declines (a blind roll, or its
-    // visibility setting) — in which case the message path would not have
-    // animated either, so leave both the flag and the sound alone.
-    const shown = await dice3d.showForRoll(roll, game.user, true);
-    if (shown === false) return false;
-
-    if (roll["options"]) roll["options"][DSN_SHOWN] = true;
-    // The system's own convention when it has already rolled dice by hand
-    // (`DamageRoll.buildPost` does the same): mute the message so the dice sound
-    // does not play twice.
-    config["mute"] = true;
-    return true;
-  } catch (error) {
-    console.warn(`${LOG_PREFIX} Duality: could not roll the dice early.`, error);
-    return false;
-  }
-}
-
-/**
  * Offer, ask, apply. Returns once the outcome is settled and the rest of
  * `buildPost` can run against it.
  */
@@ -284,114 +235,52 @@ async function runDualityOutcomeWindow(roll: AnyObject, config: AnyObject): Prom
 
   // Rules that are not a choice apply first and without asking, so the prompt
   // describes the situation the player is actually deciding about.
-  for (const offer of automatic) applyOffer(context, offer);
+  for (const offer of automatic) await applyOffer(context, offer);
 
-  if (optional.length > 0) {
-    // Only when something is actually going to be asked: a roll that raises no
-    // prompt should keep the system's ordinary timing, dice and all.
-    await showDiceBeforePrompt(roll, config);
+  if (optional.length === 0) return;
 
-    const chosen = await chooseOffers(
-      game.i18n.localize("EE.Features.DualityTitle"),
-      game.i18n.format("EE.Features.DualityIntro", {
-        hope: context.hopeTotal,
-        fear: context.fearTotal,
-        result: String(config["roll"]?.["result"]?.["label"] ?? ""),
-      }),
-      optional,
-    );
+  // Only when something is actually going to be asked: a roll that raises no
+  // prompt should keep the system's ordinary timing, dice and all.
+  await showDiceEarly(roll, config);
 
-    // Re-checked in priority order rather than in the order the dialog returned,
-    // so two features that both rewrite the outcome compose predictably.
-    for (const offer of optional) {
-      if (chosen.has(offer.feature.id)) applyOffer(context, offer);
-    }
-  }
-}
-
-/**
- * Stop Dice So Nice animating a message whose dice we already rolled by hand.
- *
- * A `preCreateChatMessage` hook, because the flag has to be on the document
- * *before* it is created — DSN decides in its own create hook, and its
- * `shouldInterceptMessage` bails on `flags.dice-so-nice.skip`. The marker is read
- * off the roll rather than tracked in a variable, so nothing can go stale or
- * attach itself to an unrelated message created in between.
- */
-function registerDiceSuppression(): void {
-  Hooks.on("preCreateChatMessage", (document: AnyObject) => {
-    try {
-      const rolls = document["rolls"] ?? [];
-      const alreadyShown = rolls.some((entry: unknown) => {
-        // Prepared documents hold Roll instances; fall back to the stored JSON in
-        // case this ever runs before `prepareDerivedData`.
-        const roll = typeof entry === "string" ? JSON.parse(entry) : (entry as AnyObject);
-        return roll?.["options"]?.[DSN_SHOWN] === true;
-      });
-      if (!alreadyShown) return;
-
-      document["updateSource"]?.({ [DSN_SKIP_FLAG]: true });
-    } catch (error) {
-      console.warn(`${LOG_PREFIX} Duality: could not suppress the duplicate dice roll.`, error);
-    }
+  const chosen = await chooseOffers({
+    title: game.i18n.localize("EE.Features.DualityTitle"),
+    intro: game.i18n.format("EE.Features.DualityIntro", {
+      hope: context.hopeTotal,
+      fear: context.fearTotal,
+      result: String(config["roll"]?.["result"]?.["label"] ?? ""),
+    }),
+    offers: toPromptOffers(optional),
   });
+
+  // Re-checked in priority order rather than in the order the dialog returned,
+  // so two features that both rewrite the outcome compose predictably.
+  for (const offer of optional) {
+    if (chosen.has(offer.feature.id)) await applyOffer(context, offer);
+  }
 }
 
 /**
  * Install the window.
  *
- * The wrapper goes on **`DHRoll.buildPost`**, not `DualityRoll.buildPost`, and the
- * one level matters. `DualityRoll.buildPost` runs
- * `setDiceSoNiceForDualityRoll` → `super.buildPost` → `dualityUpdate` →
- * `handleTriggers`, and `super` resolves past `D20Roll` (which defines no
- * `buildPost`) to `DHRoll`. Sitting there puts this window *after* the Hope/Fear
- * dice presets are stamped — so the dice can be rolled early and still look
- * right — and still before the chat message, the Fear, the countdowns and every
- * other feature's `fearRoll` trigger.
- *
- * `DHRoll.buildPost` is the base every roll type inherits, so the wrapper checks
- * the roll is actually a Duality roll before doing anything. The original is
- * always called, and a throw from our side is swallowed: a broken feature must
- * degrade to an ordinary, unmodified roll rather than eat the chat card and the
- * resource updates.
+ * The getter patch goes on unconditionally — it is what makes an already-converted
+ * roll keep reading as converted — while the window itself only ever does anything
+ * when some registered feature says it is interested.
  */
 export function registerDualityOutcome(): void {
   const DualityRoll = dualityRollClass();
-  const DHRoll = CONFIG["Dice"]?.daggerheart?.DHRoll as AnyObject | undefined;
-  if (!DualityRoll || !DHRoll) {
-    console.warn(`${LOG_PREFIX} Duality: roll classes not found — feature automation is off.`);
+  if (!DualityRoll) {
+    console.warn(`${LOG_PREFIX} Duality: DualityRoll not found — Hope/Fear automation is off.`);
     return;
-  }
-
-  if (game.system?.version && game.system.version !== VERIFIED_SYSTEM_VERSION) {
-    console.warn(
-      `${LOG_PREFIX} Duality: verified against Daggerheart ${VERIFIED_SYSTEM_VERSION}, ` +
-        `running ${game.system.version}. Re-check DualityRoll.buildPost if rolls misbehave.`,
-    );
   }
 
   patchDualityGetters(DualityRoll);
-  registerDiceSuppression();
 
-  const original = DHRoll["buildPost"];
-  if (typeof original !== "function") {
-    console.warn(`${LOG_PREFIX} Duality: no buildPost to wrap — feature automation is off.`);
-    return;
-  }
-
-  DHRoll["buildPost"] = async function (
-    this: AnyObject,
-    roll: AnyObject,
-    config: AnyObject,
-    message: AnyObject,
-  ): Promise<unknown> {
-    if (roll instanceof (DualityRoll as unknown as new () => unknown)) {
-      try {
-        await runDualityOutcomeWindow(roll, config);
-      } catch (error) {
-        console.warn(`${LOG_PREFIX} Duality: outcome window failed; leaving the roll alone.`, error);
-      }
-    }
-    return original.call(this, roll, config, message);
-  };
+  registerRollWindow({
+    id: "dualityOutcome",
+    matches: (roll) => roll instanceof (DualityRoll as unknown as new () => unknown),
+    run: async (roll, config) => {
+      await runDualityOutcomeWindow(roll, config);
+    },
+  });
 }

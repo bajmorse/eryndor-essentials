@@ -241,7 +241,8 @@ loads).
     changing mid-session, where documents are already prepared and already on
     screen and nothing would otherwise re-prepare them.
 - **Feature automation** (`src/daggerheart/feature-registry.ts`,
-  `feature-prompt.ts`, `duality-outcome.ts`) — the framework behind Daggerheart
+  `feature-prompt.ts`, `feature-ask.ts`, `roll-pipeline.ts`, `range-bands.ts`,
+  `duality-outcome.ts`, `adversary-attack.ts`) — the framework behind Daggerheart
   features phrased *"when X happens, you can pay Y to change the outcome"*. Read
   this before automating another one: the second feature of a kind should be a
   registry entry, not a new interception.
@@ -283,18 +284,24 @@ loads).
     so rewriting that field ahead of them means the Fear was never gained,
     countdowns never advanced, and other features' `fearRoll` triggers **never
     fired**. There is no equivalent "undo" afterwards.
-  - **The wrapper goes on `DHRoll.buildPost`, not `DualityRoll.buildPost`, and the
-    one level matters.** `super.buildPost` resolves past `D20Roll` (which defines
-    no `buildPost` — the chain is `Roll → BaseRoll → DHRoll → D20Roll →
-    DualityRoll`) to `DHRoll`, so patching there lands the window *between* steps
-    1 and 2: after the Hope/Fear dice presets are stamped, before anything reads
-    the result. `DHRoll` is the base every roll type inherits, so the wrapper
-    checks `roll instanceof DualityRoll` first. Both classes come from
-    `CONFIG.Dice.daggerheart`, which is assigned at script load — unlike
-    `game.system.api`, which the system only fills inside its own `init`.
+  - **One patch, on `DHRoll.buildPost`, not `DualityRoll.buildPost` — and the one
+    level matters.** `roll-pipeline.ts` owns the single wrapper; windows register
+    into it with `registerRollWindow({id, matches, run})` and `installRollPipeline()`
+    is called **last** in `module.ts` (registration order is execution order).
+    `super.buildPost` resolves past `D20Roll` (which defines no `buildPost` — the
+    chain is `Roll → BaseRoll → DHRoll → D20Roll → DualityRoll`) to `DHRoll`, so
+    patching there lands a window *between* steps 1 and 2: after the Hope/Fear
+    dice presets are stamped, before anything reads the result. It is also why a
+    plain adversary `D20Roll` arrives here directly. Every window's `matches` has
+    to gate on the roll type because `DHRoll` is the base all of them inherit.
+    Classes come from `CONFIG.Dice.daggerheart`, assigned at script load — unlike
+    `game.system.api`, which the system only fills inside its own `init`. A `run`
+    that returns a Roll **replaces** the one the rest of `buildPost` posts and acts
+    on; returning nothing keeps it. A throw from any window is swallowed, so a
+    broken feature degrades to an ordinary roll rather than eating the chat card.
   - **The 3D dice are rolled early, by hand.** Dice So Nice animates off the *chat
-    message*, which this window is holding back — so without this the player would
-    be asked to convert a result they had not watched arrive. `showDiceBeforePrompt`
+    message*, which these windows are holding back — so without this the player
+    would be asked to react to a result they had not watched arrive. `showDiceEarly`
     calls `game.dice3d.showForRoll(roll, game.user, true)` and awaits it, but only
     when a prompt is actually going to be raised; a roll that offers nothing keeps
     the system's ordinary timing. This is only correct from `DHRoll.buildPost`,
@@ -306,7 +313,9 @@ loads).
     thing `DamageRoll.buildPost` does when it has rolled dice itself. Verified
     against Dice So Nice **6.2.9**. All of it no-ops when DSN isn't installed, and
     `showForRoll` resolving `false` (blind roll, or its visibility setting) leaves
-    both the flag and the sound alone.
+    both the flag and the sound alone. A window that **replaces** the roll must
+    call `clearEarlyDice(config)` first: the dice the table watched belong to the
+    discarded roll, and the replacement's have never been seen.
   - **Flipping the result** is done with a persisted marker, not by swapping dice.
     `withHope`/`withFear` are getters comparing the two dice totals with no setter,
     the chat card renders from the *Roll object* (`roll.totalLabel` in the system's
@@ -324,6 +333,72 @@ loads).
   - Dismissal, Escape and the 30s timeout all mean "leave the roll alone" — every
     caller is mid-pipeline holding something back, so the safe answer is always to
     let the unmodified outcome through.
+  - **The `adversaryAttack` window** (`adversary-attack.ts`) — reactions to an
+    adversary landing a hit. Differs from `dualityOutcome` in three ways that
+    shape the code: the reacting character **is not the roller** (so the window
+    enumerates candidate characters and builds a context each, rather than one),
+    the client holding the pipeline open **is not the client that decides** (see
+    the socket bullet below), and the outcome is changed by **replacing the roll**
+    rather than editing a field. An adversary rolls a plain `D20Roll` (`Actor#rollClass`
+    returns `DualityRoll` only for `character`/`companion`), which has no
+    `buildPost`, so these arrive at the pipeline directly — before the chat card,
+    before `TargetField.execute` (order 20) turns `config.roll.total` into each
+    target's `hitResult`, and before the damage that follows. Candidates come from
+    `canvas.tokens.placeables` filtered to `type === "character"`, deduped by actor
+    uuid and **sorted by name** so the ask order is stable. They are asked **one at
+    a time, stopping at the first acceptance** — once the attack is being rerolled
+    there is nothing left to react to, and charging two players for one reroll
+    would be worse.
+  - **Rerolling means rebuilding, not re-rolling.** On a d20 roll disadvantage is
+    not a die to subtract but a second d20 with `kl`, so the formula itself has to
+    change. Set `config.roll.advantage = -1`, then `rollClass.createRollInstance(config)`
+    and `rollClass.buildEvaluate(...)`. Feeding the evaluated formula back through
+    the constructor is safe because `D20Roll.createBaseDice` **throws away
+    everything except the leading die** and `configureModifiers` re-derives the
+    bonuses from `config.roll.baseModifiers` plus the roll's active effects — the
+    modifiers come back by recomputation, never by string surgery. This works at
+    all because **`roll.options` *is* the config object**: `createRollInstance`
+    passes `config` straight through and core `Roll` does `this.options = options`
+    (a reference, `mergeObject` being `inplace` by default). That is also why
+    anything stashed on `roll.options` has to be cleared through `config`.
+  - **Asking someone else** (`feature-ask.ts`). Foundry has no request/response
+    over its socket, so this adds one: a correlation id, a map of waiting
+    promises, and a timeout. `responderFor(actor)` picks the active non-GM owner,
+    preferring the player who has it assigned as their character, and falls back
+    to *this* client (which makes `askUser` skip the socket entirely). The asker
+    waits `PROMPT_TIMEOUT_MS + 5s` so the remote dialog's own timeout wins the
+    race in every normal case. **Nothing off the socket is trusted**: the answer
+    is a list of feature ids, re-checked against the offers the asking client
+    built, so a malformed or stale reply can only ever mean *fewer* features fire.
+    Costs are charged by the asking client too, keeping the whole transaction on
+    one machine — a player disconnecting between "yes" and the reroll cannot leave
+    their Hope spent on nothing. The asker also raises a notification naming who
+    it is waiting on, because its own roll is visibly frozen until the reply lands.
+    `PromptOffer` is flat, localized and JSON-safe for exactly this reason;
+    localization happens on the *asking* side.
+  - **Range** (`range-bands.ts`). `Token#distanceTo` is the **Daggerheart system's**
+    addition to the core Token class (edge-to-edge, elevation-aware) and is what
+    the system measures with, so anything checking range has to go through it to
+    agree with the ruler and the token-hover readout. Thresholds come from the
+    world's `VariantRules.rangeMeasurement`, which a scene may override via
+    `scene.flags.daggerheart.rangeMeasurement` when its `setting` is `custom`
+    (`disable` only changes *display*, not reach). The comparison is the system's
+    own `distance <= threshold`, so sitting exactly on a threshold is **inside**
+    the band. Everything returns null rather than guessing when it cannot measure,
+    and callers treat null as "don't fire" — a reaction costing 3 Hope must not go
+    off on an assumed distance. Deliberately **not** delegating to Maiyalis: Target
+    Helper, which has the same logic for its picker: that module is an optional
+    integration here, and a printed rule shouldn't stop working when it's disabled.
+  - **Two deliberate silences** in `adversaryAttack`: an unmeasurable range (no
+    canvas, either actor untokened) and an undeterminable success. `config.roll.success`
+    is only populated when the attack had targets or a set difficulty, so a GM who
+    rolls with nothing targeted and eyeballs it against Evasion gets no prompt.
+  - **Paying when the feature isn't the roller's.** `config.resourceUpdates` is a
+    `ResourceUpdateMap` bound to the **rolling** actor, so the adversary window
+    cannot use it — folding a player's Hope into it would charge the adversary. It
+    calls `actor.modifyResource(...)` directly and **awaits** it, which is why
+    `payCost` returns `void | Promise<void>` and `applyOffer` is async: a failed
+    write aborts the window before the outcome changes, rather than after.
 - **Fearless** (`src/daggerheart/fearless.ts`) — the Infernis ancestry's "When you
   roll with Fear, you can mark 2 Stress to change it into a roll with Hope
   instead." The SRD ships it as a `feature` Item whose single action only charges
@@ -334,6 +409,23 @@ loads).
   which belong at 50+. The +1 Hope is deliberately *not* applied here: the system's
   own `addDualityResourceUpdates` runs afterwards, reads the rewritten result, and
   grants it. The only thing owed is the 2 Stress.
+- **Blood Maledict** (`src/daggerheart/blood-maledict.ts`) — the Blood Hunter's
+  (*Void for Daggerheart*) "Spend 3 Hope when an adversary succeeds on an attack
+  roll within Close range to make them reroll with disadvantage."
+  `Compendium.the-void-unofficial.classes.Item.gugHbXBWP24CFTJZ`, a `feature` Item
+  whose single action only charges the Hope — no effects, no triggers, nothing
+  forces the reroll. World setting `bloodMaledictReroll`, **on** by default, on the
+  **General** tab of `daggerheartAutomationMenu`. Registered on `adversaryAttack`
+  at priority 10 (it replaces the roll, so it sorts ahead of readers). *"Within
+  Close range"* is read as **the adversary being within Close of you**, which is
+  the standard reaction shape and the only reading that can be checked — the
+  attack's own range band isn't recorded on the roll. It therefore also fires when
+  the adversary hits *someone else* nearby, which is what the card says: it is
+  conditioned on an adversary succeeding, not on you being the target. The
+  `attacker.type === "adversary"` check lives in the feature, not the window — the
+  window only knows "a non-Duality attack roll", and *adversary* is this card's
+  wording. Both ends of the table need the module enabled: the prompt is raised on
+  the GM's client and shown on the owner's.
 - **Deck Limit** (`src/daggerheart/deck-limit.ts`, settings only so far) — models
   the table's card pool as physical decks: a card in one character's hands isn't
   available to anyone else. World settings `deckLimitEnabled` (off by default)

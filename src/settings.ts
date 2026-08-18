@@ -188,6 +188,18 @@ export function registerSettings(): void {
     default: true,
   });
 
+  // World-scoped for the same reason, and doubly so here: the roll happens on the
+  // GM's client while the prompt appears on the player's, so a per-client answer
+  // would let the two ends disagree about whether the reaction exists.
+  game.settings.register(MODULE_ID, SETTINGS.bloodMaledictReroll, {
+    name: "EE.Settings.BloodMaledictReroll.Name",
+    hint: "EE.Settings.BloodMaledictReroll.Hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: true,
+  });
+
   // World-scoped: only a GM can write actor documents, and the artwork this
   // changes is shared by the whole table.
   game.settings.register(MODULE_ID, SETTINGS.voidHybridFormPortrait, {

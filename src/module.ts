@@ -9,9 +9,13 @@ import { releaseOwnHolds } from "./daggerheart/deck-holds.js";
 import { registerDeckLimitBrowser } from "./daggerheart/deck-limit-browser.js";
 import { registerDeckLimitGuard } from "./daggerheart/deck-limit-guard.js";
 import { registerDeckLimitWizard } from "./daggerheart/deck-limit-wizard.js";
+import { registerAdversaryAttack } from "./daggerheart/adversary-attack.js";
+import { registerBloodMaledict } from "./daggerheart/blood-maledict.js";
 import { registerDualityOutcome } from "./daggerheart/duality-outcome.js";
 import { registerFearless } from "./daggerheart/fearless.js";
+import { registerFeatureAsk } from "./daggerheart/feature-ask.js";
 import { registerReach } from "./daggerheart/reach.js";
+import { installRollPipeline } from "./daggerheart/roll-pipeline.js";
 import { registerHotbarPages } from "./hotbar/hotbar-pages.js";
 import { registerGinzzzuPortraits } from "./integrations/ginzzzu-portraits.js";
 import { registerVoidHybridForm } from "./integrations/void-hybrid-form.js";
@@ -40,11 +44,17 @@ Hooks.once("init", async () => {
   // Patches the system's data preparation, so it has to be in place before any
   // document is constructed — `init` is the last hook that guarantees that.
   registerReach();
-  // Feature automation: the interception window first, then every feature that
-  // registers into it. Wrapping the system's roll pipeline has to happen before
-  // the first roll, and `init` is the earliest point `game.system.api` exists.
+  // Feature automation: every window declares itself, then every feature
+  // registers into one, and only then is the system's roll pipeline patched —
+  // `installRollPipeline` runs the windows in registration order, so it has to
+  // come last. All of it before the first roll, and `init` is the earliest point
+  // the system's roll classes are reachable.
+  registerFeatureAsk();
   registerDualityOutcome();
+  registerAdversaryAttack();
   registerFearless();
+  registerBloodMaledict();
+  installRollPipeline();
   // Third-party integrations: each hooks nothing unless its module is active.
   registerVoidHybridForm();
   registerVoidHybridFormStressEnd();

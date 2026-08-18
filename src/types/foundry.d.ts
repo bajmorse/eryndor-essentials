@@ -88,12 +88,23 @@ declare global {
     levelIndicator?: DisplayObject | null;
     /** Schedules an incremental refresh; fires the `refreshToken` hook. */
     renderFlags: { set(flags: AnyObject): void };
+    /**
+     * Distance to another token in scene grid units — **the Daggerheart
+     * system's** addition to the core Token class, not Foundry's own. It is
+     * edge-to-edge and elevation-aware, and it is what the system itself uses
+     * for range-dependent effects and the token-hover readout, so anything
+     * measuring range here has to go through it to agree with the table.
+     *
+     * `NaN` when the canvas isn't ready, `Infinity` past the adjacency buffer
+     * on a gridless scene.
+     */
+    distanceTo(target: Token): number;
   }
 
   /** The active canvas. `tokens` is undefined until the canvas is ready. */
   const canvas: {
     ready: boolean;
-    scene?: { id: string } | null;
+    scene?: ({ id: string } & AnyObject) | null;
     tokens?: {
       placeables: Token[];
       /** Currently selected tokens, in the order they were selected (last = newest). */

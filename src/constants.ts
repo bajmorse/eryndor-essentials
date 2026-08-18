@@ -119,6 +119,19 @@ export const SETTINGS = {
    */
   fearlessFearToHope: "fearlessFearToHope",
   /**
+   * Master switch for automating **Blood Maledict** (Blood Hunter, *Void for
+   * Daggerheart*): when an adversary lands an attack within Close range, offer
+   * the character 3 Hope to make it reroll at disadvantage — before the chat card
+   * is posted and before the hit becomes damage. See
+   * `daggerheart/blood-maledict.ts`.
+   *
+   * World-scoped and **on** by default, for the same reasons as
+   * {@link SETTINGS.fearlessFearToHope}. Note that the prompt is raised on the
+   * GM's client (adversaries roll there) but shown to the character's owner over
+   * the module's socket, so both ends need the module enabled.
+   */
+  bloodMaledictReroll: "bloodMaledictReroll",
+  /**
    * Repoint a portrait raised by Ginzzzu's Portraits & NPC Dock when the actor's
    * artwork changes underneath it — something that module doesn't do for `img`.
    * World-scoped for consistency with the other feature switches, even though the

@@ -33,7 +33,7 @@ import { FLAGS, LOG_PREFIX, MODULE_ID } from "../constants.js";
  * of the system's roll/action pipeline; new stages get added here as they are
  * opened up, and a feature naming an unopened window simply never fires.
  */
-export type FeatureWindow = "dualityOutcome";
+export type FeatureWindow = "dualityOutcome" | "adversaryAttack";
 
 /**
  * A resource price, in the same shape the system's own `CostField` produces.
@@ -73,9 +73,11 @@ export interface FeatureContextBase {
   /**
    * Charge a feature's price. The *window* owns how — the duality window folds
    * costs into the roll's own pending resource update so the whole roll lands as
-   * one actor write, rather than paying separately and racing it.
+   * one actor write, rather than paying separately and racing it, while a window
+   * whose feature belongs to someone other than the roller has to write to that
+   * actor directly, and await it before the outcome changes.
    */
-  payCost(costs: readonly FeatureCost[]): void;
+  payCost(costs: readonly FeatureCost[]): void | Promise<void>;
 }
 
 /**
@@ -253,7 +255,10 @@ export function offersFor<C extends FeatureContextBase>(
  * Charge for and apply one offer. Cost first: {@link canAfford} has already said
  * the actor can pay, and applying without charging is the failure that matters.
  */
-export function applyOffer<C extends FeatureContextBase>(context: C, offer: FeatureOffer<C>): void {
-  context.payCost(offer.feature.cost ?? []);
+export async function applyOffer<C extends FeatureContextBase>(
+  context: C,
+  offer: FeatureOffer<C>,
+): Promise<void> {
+  await context.payCost(offer.feature.cost ?? []);
   offer.feature.apply(context, offer.item);
 }

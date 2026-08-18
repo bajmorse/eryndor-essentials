@@ -12,9 +12,17 @@
  * Dismissing the dialog (Escape, the close button, the timeout) means "none",
  * never "all": every caller is mid-pipeline holding something back, so the safe
  * answer is always to let the unmodified outcome through.
+ *
+ * ## Why it takes plain data
+ *
+ * {@link PromptOffer} is deliberately flat, localized and JSON-safe rather than
+ * the registry's `FeatureOffer` (which carries live Item and Actor documents).
+ * The client that raises this dialog is not always the client that owns the
+ * feature — a reaction to a GM-rolled adversary attack is decided by the player
+ * whose Hope it costs — so the whole question has to survive a trip over a
+ * socket. See `feature-ask.ts`.
  */
 import { escapeHtml } from "../utils/escape-html.js";
-import type { FeatureContextBase, FeatureOffer } from "./feature-registry.js";
 
 /**
  * How long a prompt waits before answering "none" for the player.
@@ -24,17 +32,32 @@ import type { FeatureContextBase, FeatureOffer } from "./feature-registry.js";
  * allowed to stall play indefinitely. Long enough to read three lines and
  * decide, short enough that nobody wonders whether the roll broke.
  */
-const PROMPT_TIMEOUT_MS = 30_000;
+export const PROMPT_TIMEOUT_MS = 30_000;
 
-/** One row of the dialog: what the feature is, and what it costs. */
-function describeOffer<C extends FeatureContextBase>(offer: FeatureOffer<C>): string {
-  const label = game.i18n.localize(offer.feature.labelKey);
-  const hint = offer.feature.hintKey ? game.i18n.localize(offer.feature.hintKey) : "";
-  const item = escapeHtml(String(offer.item["name"] ?? label));
+/** One offer, as the dialog needs it: localized, flat and serializable. */
+export interface PromptOffer {
+  /** The feature id, which is also the checkbox name and the answer's value. */
+  id: string;
+  /** Localized feature name. */
+  label: string;
+  /** Localized explanatory line, if the feature has one. */
+  hint?: string;
+  /** The granting Item's name, so the player can see which card this came from. */
+  itemName: string;
+}
 
-  return `<strong>${escapeHtml(label)}</strong> <span class="hint">(${item})</span>${
-    hint ? `<p class="hint">${escapeHtml(hint)}</p>` : ""
-  }`;
+/** Everything needed to raise the dialog, and nothing that can't cross a socket. */
+export interface PromptRequest {
+  title: string;
+  intro: string;
+  offers: PromptOffer[];
+}
+
+/** One row of the dialog: what the feature is, and which card it came from. */
+function describeOffer(offer: PromptOffer): string {
+  return `<strong>${escapeHtml(offer.label)}</strong> <span class="hint">(${escapeHtml(
+    offer.itemName,
+  )})</span>${offer.hint ? `<p class="hint">${escapeHtml(offer.hint)}</p>` : ""}`;
 }
 
 /**
@@ -79,17 +102,14 @@ async function waitWithTimeout(config: AnyObject): Promise<unknown> {
 }
 
 /**
- * Ask which of `offers` to use. Returns the ids the player accepted, in the
- * order they were offered (which is the registry's priority order).
+ * Ask which of `request.offers` to use, on *this* client. Returns the ids the
+ * player accepted.
  *
  * Callers pass only *optional* offers; a feature that is not a choice should be
  * applied without asking.
  */
-export async function chooseOffers<C extends FeatureContextBase>(
-  title: string,
-  intro: string,
-  offers: readonly FeatureOffer<C>[],
-): Promise<Set<string>> {
+export async function chooseOffers(request: PromptRequest): Promise<Set<string>> {
+  const { title, intro, offers } = request;
   if (offers.length === 0) return new Set();
 
   const chosen = new Set<string>();
@@ -110,7 +130,7 @@ export async function chooseOffers<C extends FeatureContextBase>(
       ],
     });
 
-    if (answer === "use") chosen.add(only.feature.id);
+    if (answer === "use") chosen.add(only.id);
     return chosen;
   }
 
@@ -120,7 +140,7 @@ export async function chooseOffers<C extends FeatureContextBase>(
     .map(
       (offer) =>
         `<label class="ee-feature-offer"><input type="checkbox" name="${escapeHtml(
-          offer.feature.id,
+          offer.id,
         )}" checked> ${describeOffer(offer)}</label>`,
     )
     .join("");
@@ -136,8 +156,8 @@ export async function chooseOffers<C extends FeatureContextBase>(
         callback: (_event: Event, button: AnyObject) => {
           const form = button?.["form"];
           const picked = offers
-            .filter((offer) => form?.elements?.[offer.feature.id]?.checked === true)
-            .map((offer) => offer.feature.id);
+            .filter((offer) => form?.elements?.[offer.id]?.checked === true)
+            .map((offer) => offer.id);
           return { picked };
         },
       },
