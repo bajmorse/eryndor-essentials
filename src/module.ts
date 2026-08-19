@@ -11,6 +11,7 @@ import { registerDeckLimitGuard } from "./daggerheart/deck-limit-guard.js";
 import { registerDeckLimitWizard } from "./daggerheart/deck-limit-wizard.js";
 import { registerAdversaryAttack } from "./daggerheart/adversary-attack.js";
 import { registerBloodMaledict } from "./daggerheart/blood-maledict.js";
+import { registerBloodSpike } from "./daggerheart/blood-spike.js";
 import { registerCrimsonRite } from "./daggerheart/crimson-rite.js";
 import { registerDualityOutcome } from "./daggerheart/duality-outcome.js";
 import { registerFearless } from "./daggerheart/fearless.js";
@@ -53,6 +54,11 @@ Hooks.once("init", async () => {
   registerFeatureAsk();
   registerDualityOutcome();
   registerAdversaryAttack();
+  // Its own window rather than a registry feature — one card's rule, not a
+  // reaction anything else could join. After `registerDualityOutcome` because
+  // both can fire on the same roll, and the one that rewrites the Hope/Fear
+  // result should settle before the one that only reads whether it hit.
+  registerBloodSpike();
   registerFearless();
   registerBloodMaledict();
   installRollPipeline();

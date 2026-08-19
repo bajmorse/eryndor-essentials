@@ -232,7 +232,23 @@ const DOMAINS: Catalog = {
     plain("Sage"),
     plain("Splendor"),
     plain("Valor"),
-    fromVoid("Blood"),
+    {
+      id: "blood",
+      label: "Blood",
+      fromVoid: true,
+      groups: [
+        {
+          legend: "EE.Automation.DomainCardsLegend",
+          settings: [
+            {
+              key: SETTINGS.bloodSpikeSpendHope,
+              name: "EE.Settings.BloodSpikeSpendHope.Name",
+              hint: "EE.Settings.BloodSpikeSpendHope.Hint",
+            },
+          ],
+        },
+      ],
+    },
     fromVoid("Dread"),
   ],
 };

@@ -144,6 +144,18 @@ export const SETTINGS = {
    */
   crimsonRiteEnchant: "crimsonRiteEnchant",
   /**
+   * Master switch for automating **Blood Spike** (Blood domain, *Void for
+   * Daggerheart*): after a successful cast, offer to spend the Hope, and roll the
+   * damage with the die the character's marked Hit Points call for. See
+   * `daggerheart/blood-spike.ts`.
+   *
+   * World-scoped and **on** by default, for the same reasons as
+   * {@link SETTINGS.fearlessFearToHope}. Note that the Stress the card marks is
+   * already the system's own — the card's attack actions carry it as a damage
+   * part — so this switch governs only the Hope and the die.
+   */
+  bloodSpikeSpendHope: "bloodSpikeSpendHope",
+  /**
    * Repoint a portrait raised by Ginzzzu's Portraits & NPC Dock when the actor's
    * artwork changes underneath it — something that module doesn't do for `img`.
    * World-scoped for consistency with the other feature switches, even though the

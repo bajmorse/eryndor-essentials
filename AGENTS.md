@@ -206,7 +206,8 @@ loads).
   ("Treat any weapon, ability, spell, or other feature that has a Melee range as
   though it had a Very Close range") is prose on a `feature` Item that the system
   enforces nowhere. World setting `reachMeleeAsVeryClose`, off by default, edited
-  on the **General** tab of `daggerheartAutomationMenu`. An actor grants it by
+  on the **General** tab of `daggerheartAutomationMenu` — it belongs to no single
+  card, which is what that tab is for. An actor grants it by
   holding a `feature` Item named "Reach" (case-insensitive) — that's how the
   ancestry's feature is embedded on the character, and it's what the system's own
   `sheetLists` filters on. Deliberately *not* matched on other item types: a
@@ -445,8 +446,9 @@ loads).
   instead." The SRD ships it as a `feature` Item whose single action only charges
   the Stress: no effects, no triggers, nothing converts the result. World setting
   `fearlessFearToHope`, **on** by default (it is the printed rule, and it acts only
-  on the player's own answer), on the **General** tab of `daggerheartAutomationMenu`.
-  Registered on `dualityOutcome` at priority 10 — rewriters sort ahead of reactors,
+  on the player's own answer), under **Ancestries → Infernis** in
+  `daggerheartAutomationMenu`. Registered on `dualityOutcome` at priority 10 —
+  rewriters sort ahead of reactors,
   which belong at 50+. The +1 Hope is deliberately *not* applied here: the system's
   own `addDualityResourceUpdates` runs afterwards, reads the rewritten result, and
   grants it. The only thing owed is the 2 Stress.
@@ -456,8 +458,9 @@ loads).
   `Compendium.the-void-unofficial.classes.Item.gugHbXBWP24CFTJZ`, a `feature` Item
   whose single action only charges the Hope — no effects, no triggers, nothing
   forces the reroll. World setting `bloodMaledictReroll`, **on** by default, on the
-  **General** tab of `daggerheartAutomationMenu`. Registered on `adversaryAttack`
-  at priority 10 (it replaces the roll, so it sorts ahead of readers). *"Within
+  **Classes → Blood Hunter** panel of `daggerheartAutomationMenu`. Registered on
+  `adversaryAttack` at priority 10 (it replaces the roll, so it sorts ahead of
+  readers). *"Within
   Close range"* is read as **the adversary being within Close of you**, which is
   the standard reaction shape and the only reading that can be checked — the
   attack's own range band isn't recorded on the roll. It therefore also fires when
@@ -472,7 +475,7 @@ loads).
   … until the end of your next rest or you use this feature again … an extra 1d4
   magic damage", scaling to 4d4.
   `Compendium.the-void-unofficial.classes.Item.otb0ThXWuqQzzWho`. World setting
-  `crimsonRiteEnchant`, **on** by default, on the **General** tab of
+  `crimsonRiteEnchant`, **on** by default, under **Classes → Blood Hunter** in
   `daggerheartAutomationMenu`. **Not a roll window** — it is the first feature here
   activated by an *action* and delivered as a standing ActiveEffect, so it hooks
   the system directly and is registered after `installRollPipeline()`. Read this
@@ -521,6 +524,56 @@ loads).
     manually-enabled Void tier effect is disabled on activation, since giving the
     weapon a `magical` type is exactly the condition that would wake it up and
     stack it on top.
+- **Blood Spike** (`src/daggerheart/blood-spike.ts`) — the Blood domain's (*Void
+  for Daggerheart*) "Make a Spellcast Roll against a target within Close range. On
+  a success, spend a Hope to deal d8+2 magic damage … and the target marks a
+  Stress. If you have at least 3 Hit Points marked, the damage die is a d10
+  instead." `Compendium.the-void-unofficial.domains.Item.pg4tkHr8WpfDrs17`, a
+  `domainCard` carrying **three** actions: two identical attacks named "Blood
+  Spike d8" and "Blood Spike d10", and an effect action "Spend Hope" that charges
+  1 Hope and does nothing else. World setting `bloodSpikeSpendHope`, **on** by
+  default, under **Domains → Blood** in `daggerheartAutomationMenu`. The first
+  entry here that is a *domain card* rather than a class/ancestry feature, and the
+  first to use both a roll window and a `preRoll` damage hook together.
+  - **The Stress is already native — don't implement it.** Both attack actions
+    carry a `damage.resources.stress` part of a flat `1`, and
+    `DamageField.applyDamage` only applies to targets whose `hitResult.success` is
+    true. "On a success, the target marks a Stress" therefore needs no code, and
+    that is also what lets declining the Hope leave the Stress standing: nulling
+    `config.damageFormula` removes only `damage.main`, and `Actor#takeDamage`
+    handles a null `main` and applies the resource updates on their own.
+  - **`config.roll.success` is set during the roll step, not after it.**
+    `D20Roll.buildEvaluate` populates it (and each target's `hit`) before
+    `buildPost` — so the seam in `roll-pipeline.ts` is the *only* place where the
+    answer is knowable and the damage has not yet been rolled. The workflow order
+    is roll (10) → damage (20) → target (20) → applyDamage (75) → … → cost (150),
+    and every one of the system's own interception points between them is a
+    synchronous `Hooks.call` that cannot await a dialog.
+  - **Two windows can now fire on one roll.** A Blood Spike cast is a character's
+    Duality roll, so `dualityOutcome` (Fearless) and this one both see it. They
+    compose — converting Fear to Hope changes the result, never the total — but
+    `showDiceEarly` had to be made **idempotent**, or the second prompt would throw
+    the dice a second time. Register this window *after* `registerDualityOutcome`.
+  - **The die is swapped by string edit, deliberately.** At the damage roll's
+    `daggerheart.preRoll`, `config.damageFormula.formula` still holds only this
+    action's own damage — `formatFormulas` has resolved `@prof` and merged
+    same-typed parts, and bonuses join later in `constructFormula` — so the
+    action's declared `damage.main.value.dice` is its only occurrence. Rebuilding
+    the formula instead would be a second implementation of `formatFormulas` that
+    could drift. Pattern is `` `${declared}(?![0-9])` `` so a `d1` never eats the
+    `0` of a `d10`, and `declared` is validated against `/^d\d+$/` first. **Both
+    dice are constants here, not read off the action** — the action's die says
+    which *button* was pressed, so taking the base from it would leave a d10 press
+    below the threshold rolling a d10, which is the mistake this removes.
+  - The automation attaches to **both** attack actions (matched on `action.type`,
+    never on the Void's action names), so whichever button is pressed the rule
+    picks the die — the two stop being a choice a player can get wrong. The card's
+    "Spend Hope" action is deliberately left alone: it is the manual route for a
+    cast resolved with nothing targeted, which raises no prompt because there is
+    then no one to damage and no one to mark Stress.
+  - Costs go into `config.resourceUpdates` (see `duality-outcome.ts`), not a
+    direct write: the roll is about to queue its own +1 Hope into the same map,
+    and on a Hope result the two correctly cancel to a single net-zero write.
 - **Deck Limit** (`src/daggerheart/deck-limit.ts`, settings only so far) — models
   the table's card pool as physical decks: a card in one character's hands isn't
   available to anyone else. World settings `deckLimitEnabled` (off by default)
@@ -747,7 +800,8 @@ styles/ templates/ lang/ packs/   served from the repo root as-is
     The Daggerheart Automation window has a "General" tab plus one tab per kind of
     character content — Ancestries, Communities, Classes, Domains — and a rule is
     filed under the card that prints it (Fearless under Infernis; Blood Maledict,
-    Crimson Rite and Hybrid Form under Blood Hunter). All four content tabs render
+    Crimson Rite and Hybrid Form under Blood Hunter; Blood Spike under the Blood
+    domain). All four content tabs render
     the *same* template from data in `src/apps/automation-catalog.ts`, so adding a
     switch is one `CatalogSetting` in the right entry's `groups`. `settingKeys` is
     derived from that data by `catalogSettingKeys()` — never list a key in both, and

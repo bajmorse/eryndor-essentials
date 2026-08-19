@@ -169,6 +169,12 @@ export function rollVisibility(config: AnyObject): RollVisibility {
  * Returns whether the animation actually played.
  */
 export async function showDiceEarly(roll: AnyObject, config: AnyObject): Promise<boolean> {
+  // Idempotent, because more than one window can hold the same roll: a Blood
+  // Spike cast is a character's Duality roll, so Fearless and Blood Spike may
+  // both want to ask about it. The table watches the dice land once, before the
+  // first question; the second must not throw them again.
+  if (roll["options"]?.[DSN_SHOWN] === true) return true;
+
   const dice3d = game["dice3d"];
   if (typeof dice3d?.showForRoll !== "function") return false;
 

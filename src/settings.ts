@@ -213,6 +213,18 @@ export function registerSettings(): void {
     default: true,
   });
 
+  // World-scoped like the rest: the prompt and the damage roll happen on the
+  // caster's client, but the die a spike rolls is a table-wide reading of the
+  // card, not a per-client preference.
+  game.settings.register(MODULE_ID, SETTINGS.bloodSpikeSpendHope, {
+    name: "EE.Settings.BloodSpikeSpendHope.Name",
+    hint: "EE.Settings.BloodSpikeSpendHope.Hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: true,
+  });
+
   // World-scoped: only a GM can write actor documents, and the artwork this
   // changes is shared by the whole table.
   game.settings.register(MODULE_ID, SETTINGS.voidHybridFormPortrait, {
