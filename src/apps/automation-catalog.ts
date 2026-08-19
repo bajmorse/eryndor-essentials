@@ -225,7 +225,22 @@ const DOMAINS: Catalog = {
   entries: [
     plain("Arcana"),
     plain("Blade"),
-    plain("Bone"),
+    {
+      id: "bone",
+      label: "Bone",
+      groups: [
+        {
+          legend: "EE.Automation.DomainCardsLegend",
+          settings: [
+            {
+              key: SETTINGS.iSeeItComingEvasion,
+              name: "EE.Settings.ISeeItComingEvasion.Name",
+              hint: "EE.Settings.ISeeItComingEvasion.Hint",
+            },
+          ],
+        },
+      ],
+    },
     plain("Codex"),
     plain("Grace"),
     plain("Midnight"),

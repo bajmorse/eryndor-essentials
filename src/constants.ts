@@ -156,6 +156,18 @@ export const SETTINGS = {
    */
   bloodSpikeSpendHope: "bloodSpikeSpendHope",
   /**
+   * Master switch for automating **I See It Coming** (Bone domain): when an
+   * attack from beyond Melee range lands on the character, offer to mark a Stress,
+   * roll a d4 and add it to their Evasion against that attack — before the chat
+   * card is posted and before the hit becomes damage. See
+   * `daggerheart/i-see-it-coming.ts`.
+   *
+   * World-scoped and **on** by default, for the same reasons as
+   * {@link SETTINGS.bloodMaledictReroll}, whose window and socket relay it
+   * shares — so both ends of the table need the module enabled.
+   */
+  iSeeItComingEvasion: "iSeeItComingEvasion",
+  /**
    * Repoint a portrait raised by Ginzzzu's Portraits & NPC Dock when the actor's
    * artwork changes underneath it — something that module doesn't do for `img`.
    * World-scoped for consistency with the other feature switches, even though the

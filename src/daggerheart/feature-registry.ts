@@ -113,8 +113,14 @@ export interface AutomatedFeature<C extends FeatureContextBase = FeatureContextB
   enabled(): boolean;
   /** Does this event actually trigger the feature? */
   when(context: C, item: AnyObject): boolean;
-  /** Change the outcome. Runs only after any cost has been charged. */
-  apply(context: C, item: AnyObject): void;
+  /**
+   * Change the outcome. Runs only after any cost has been charged.
+   *
+   * May be async, and is awaited: a feature whose effect is "roll a d4 and add
+   * it" has to evaluate a Roll, which the window must not race — every caller is
+   * mid-pipeline holding the result back precisely so the change lands first.
+   */
+  apply(context: C, item: AnyObject): void | Promise<void>;
 }
 
 /** One eligible feature, paired with the Item that granted it. */
@@ -260,5 +266,5 @@ export async function applyOffer<C extends FeatureContextBase>(
   offer: FeatureOffer<C>,
 ): Promise<void> {
   await context.payCost(offer.feature.cost ?? []);
-  offer.feature.apply(context, offer.item);
+  await offer.feature.apply(context, offer.item);
 }

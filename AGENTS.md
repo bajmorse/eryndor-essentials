@@ -574,6 +574,43 @@ loads).
   - Costs go into `config.resourceUpdates` (see `duality-outcome.ts`), not a
     direct write: the roll is about to queue its own +1 Hope into the same map,
     and on a Hope result the two correctly cancel to a single net-zero write.
+- **I See It Coming** (`src/daggerheart/i-see-it-coming.ts`) — the Bone domain's
+  (SRD) "When you're targeted by an attack made from beyond Melee range, you can
+  mark a Stress to roll a d4 and gain a bonus to your Evasion equal to the result
+  against the attack." `Compendium.daggerheart.domains.Item.Kp6RejHGimnuoBom`, a
+  `domainCard` whose one action ("Roll d4") charges the Stress and rolls the die
+  but compares it to nothing. World setting `iSeeItComingEvasion`, **on** by
+  default, under **Domains → Bone** in `daggerheartAutomationMenu`. Registered on
+  `adversaryAttack` at priority 20 (a rewriter; reactors belong at 50+), so it
+  shares Blood Maledict's socket relay — both ends of the table need the module.
+  - **Raise `target.evasion`, never `target.hit`.** The chat message recomputes
+    the hit on *every render* — `DhRollMessage#_getCurrentTargets` derives it from
+    `data.difficulty || data.evasion` against `this.roll.total` — so a flipped
+    `hit` flag would be cosmetic and would come apart on the first page reload.
+    Evasion is also what `D20Roll.buildEvaluate` and `TargetField.execute` both
+    read, which is why it is the one field that makes every consumer agree.
+    `hit`/`config.roll.success` are still updated, for everything mid-flight.
+  - **`beyond(band)` is not `!within(band)`.** `withinBand` returns `boolean |
+    null`, and an unmeasurable distance must not satisfy "from beyond Melee
+    range" — so the context grew an explicit `beyond`, which is `=== false`.
+  - **`evasionDecides` guards the whole idea.** `buildEvaluate` compares against
+    `config.roll.difficulty ?? target.difficulty ?? target.evasion`; when either
+    of the first two is set, an Evasion bonus buys nothing and the Stress must not
+    be charged. A `character` has no `system.difficulty` field at all, which is
+    why the ordinary case passes.
+  - "Targeted by an attack" is read as **hit** by one, since the window only opens
+    on a success and a bonus against an attack that already missed is a wasted
+    Stress. Deliberately *not* checked: that the attacker is an adversary — the
+    card says "an attack" without qualification, unlike Blood Maledict.
+  - `AutomatedFeature#apply` became `void | Promise<void>` for this, and
+    `applyOffer` awaits it: rolling a die is async, and the window is holding the
+    result back precisely so the change lands first. The d4 posts as a real Roll
+    message (Dice So Nice animates it for free), whispered via `rollVisibility` to
+    exactly the audience the attack card will reach — it is created on the
+    *attacker's* client, so a blind GM roll would otherwise leak.
+  - The window's loop now breaks when `config.roll.success` stops being true: a
+    dodged attack must not then be offered to the next character as an adversary
+    that "succeeded".
 - **Deck Limit** (`src/daggerheart/deck-limit.ts`, settings only so far) — models
   the table's card pool as physical decks: a card in one character's hands isn't
   available to anyone else. World settings `deckLimitEnabled` (off by default)
@@ -801,7 +838,7 @@ styles/ templates/ lang/ packs/   served from the repo root as-is
     character content — Ancestries, Communities, Classes, Domains — and a rule is
     filed under the card that prints it (Fearless under Infernis; Blood Maledict,
     Crimson Rite and Hybrid Form under Blood Hunter; Blood Spike under the Blood
-    domain). All four content tabs render
+    domain, I See It Coming under Bone). All four content tabs render
     the *same* template from data in `src/apps/automation-catalog.ts`, so adding a
     switch is one `CatalogSetting` in the right entry's `groups`. `settingKeys` is
     derived from that data by `catalogSettingKeys()` — never list a key in both, and

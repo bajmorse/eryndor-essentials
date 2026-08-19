@@ -93,6 +93,14 @@ export interface AdversaryAttackContext extends FeatureContextBase {
   hits: PromptParty[];
   /** Whether *this* actor is one of the targets it hit. */
   isHitTarget: boolean;
+  /**
+   * Whether this actor's **Evasion** is the number the attack is being compared
+   * against — false when the roll carries a fixed difficulty, or the target entry
+   * one of its own, in which case {@link raiseEvasion} would change nothing that
+   * decides the hit. A feature that buys an Evasion bonus must check this rather
+   * than pay for an effect that cannot land.
+   */
+  evasionDecides: boolean;
   /** Set once a feature has asked for the reroll; a second one would be wasted. */
   rerollRequested: boolean;
   /**
@@ -100,8 +108,24 @@ export interface AdversaryAttackContext extends FeatureContextBase {
    * be read, which keeps the window's "don't guess about range" promise.
    */
   within(band: RangeBand): boolean;
+  /**
+   * Is the attacker *outside* `band`? Deliberately not `!within(band)`: an
+   * unmeasurable range makes both answers false, so a rule phrased "from beyond
+   * Melee range" declines rather than firing on a distance nobody established.
+   */
+  beyond(band: RangeBand): boolean;
   /** Ask for the attack to be rolled again at disadvantage. */
   forceRerollWithDisadvantage(): void;
+  /**
+   * Add `amount` to this actor's Evasion against this attack, and re-decide who
+   * it hit. Ignored when the number is not a positive one.
+   */
+  raiseEvasion(amount: number): void;
+}
+
+/** Is `value` a difficulty actually set, as opposed to null/undefined/absent? */
+function isFixedNumber(value: unknown): boolean {
+  return typeof value === "number" && Number.isFinite(value);
 }
 
 /** The actor that made the roll, or null when the roll has no owner. */
@@ -149,6 +173,11 @@ function buildContext(
 ): AdversaryAttackContext {
   const targets = (config["targets"] ?? []) as AnyObject[];
   const hit = targets.filter((target) => target["hit"] === true);
+  // The entries for *this* actor, which are the ones an Evasion bonus moves. More
+  // than one is possible: two of a character's tokens can both be targeted.
+  const mine = targets.filter(
+    (target) => String(target["actorId"] ?? "") === String(actor["uuid"] ?? ""),
+  );
 
   return {
     actor,
@@ -163,14 +192,50 @@ function buildContext(
       img: target["img"] ? String(target["img"]) : undefined,
     })),
     isHitTarget: hit.some((target) => String(target["actorId"] ?? "") === String(actor["uuid"] ?? "")),
+    // `D20Roll.buildEvaluate` compares against `config.roll.difficulty ?? target
+    // .difficulty ?? target.evasion`, so Evasion only decides when neither of the
+    // first two is set. A `character` has no `system.difficulty` at all, which is
+    // why the ordinary case passes.
+    evasionDecides:
+      mine.length > 0 &&
+      !isFixedNumber(config["roll"]?.["difficulty"]) &&
+      mine.every((target) => !isFixedNumber(target["difficulty"])),
     rerollRequested: false,
 
     within(band: RangeBand): boolean {
       return withinBand(distance, band) === true;
     },
 
+    beyond(band: RangeBand): boolean {
+      return withinBand(distance, band) === false;
+    },
+
     forceRerollWithDisadvantage(): void {
       this.rerollRequested = true;
+    },
+
+    raiseEvasion(amount: number): void {
+      if (!Number.isFinite(amount) || amount <= 0 || mine.length === 0) return;
+
+      for (const target of mine) {
+        target["evasion"] = Number(target["evasion"] ?? 0) + amount;
+        // Re-decided exactly as `D20Roll.buildEvaluate` decided it the first
+        // time, so the two never disagree.
+        const against = config["roll"]?.["difficulty"] ?? target["difficulty"] ?? target["evasion"];
+        target["hit"] =
+          roll["isCritical"] === true ||
+          Number(config["roll"]?.["total"] ?? 0) >= Number(against);
+      }
+
+      // The chat card does *not* trust `hit` — `DhRollMessage#_getCurrentTargets`
+      // recomputes it from `difficulty || evasion` every time it renders — so the
+      // raised Evasion is what makes the miss survive a reload and reach every
+      // client. `hit` and `success` are updated for everything still in flight:
+      // `TargetField.execute`, `CostField`'s `consumeOnSuccess`, and the rest of
+      // this window's own loop.
+      if (config["roll"]) {
+        config["roll"]["success"] = targets.some((target) => target["hit"] === true);
+      }
     },
 
     async payCost(costs: readonly FeatureCost[]): Promise<void> {
@@ -354,6 +419,16 @@ async function runAdversaryAttackWindow(
 
     if (context.rerollRequested) {
       accepted = context;
+      break;
+    }
+
+    // A reaction can take the success away — an Evasion bonus that turns the only
+    // hit into a miss. Everything this window offers is conditioned on an
+    // adversary having *succeeded*, so stop rather than asking the next character
+    // to react to an attack that no longer lands. Re-read off the config, which
+    // is what `raiseEvasion` updated, rather than trusting the stale context.
+    if (config["roll"]?.["success"] !== true) {
+      console.debug(`${LOG_PREFIX} Adversary attack: no longer a hit; stopping here.`);
       break;
     }
   }

@@ -80,6 +80,8 @@
   "EE.Settings.CrimsonRiteEnchant.Hint": "Make the Void's \"Crimson Rite\" feature do what it says. Marking the Hit Point asks which active weapon to enchant (silently, if only one is equipped) and grants that weapon a tier-scaled bonus — 1d4 rising to 4d4 — which the system expires at the character's next rest, short or long. Using the feature again moves the rite rather than stacking it. The enchanted weapon's damage also counts as magic, which is the part the Void's own tier effects never managed on an ordinary physical weapon.",
   "EE.Settings.BloodSpikeSpendHope.Name": "Blood Spike",
   "EE.Settings.BloodSpikeSpendHope.Hint": "Resolve the Void's \"Blood Spike\" card in one press. Either of its attack actions now rolls the die the rule calls for — a d10 once the caster has 3 or more Hit Points marked, a d8 below that — so the d8 and d10 buttons stop being a choice you can get wrong, in either direction. On a hit, the caster is asked whether to spend the Hope: taking it rolls the damage as usual, declining rolls none, and the target marks its Stress either way (that part is already the card's own damage part, applied only to targets that were hit). A miss asks nothing. The card's separate \"Spend Hope\" action is left alone, as the manual route for a cast resolved without a target.",
+  "EE.Settings.ISeeItComingEvasion.Name": "I See It Coming",
+  "EE.Settings.ISeeItComingEvasion.Hint": "Let a character holding the Bone domain's \"I See It Coming\" card use it: whenever an attack made from beyond Melee range lands on them, offer to mark a Stress, roll a d4 and add it to their Evasion against that attack. The attacker's client pauses the roll and puts the question on the character's owner's screen; taking it can turn the hit into a miss before the chat card is posted, so the hit never becomes damage. The d4 is posted to chat, whispered as far as the attack itself. Needs both actors on the scene — a range that can't be measured raises no prompt, and neither does an attack rolled against a fixed difficulty rather than Evasion.",
 
   "EE.Settings.VoidHybridFormPortrait.Name": "Sync portrait to Hybrid Form",
   "EE.Settings.VoidHybridFormPortrait.Hint": "When The Void puts an Order of the Lycan character into Hybrid Form, change the character sheet portrait to match the transformed token art, and change it back when the form is dropped.",
@@ -138,6 +140,10 @@
 
   "EE.Features.BloodMaledict.Label": "Blood Maledict",
   "EE.Features.BloodMaledict.Hint": "Spend 3 Hope to make them reroll this attack with disadvantage.",
+
+  "EE.Features.ISeeItComing.Label": "I See It Coming",
+  "EE.Features.ISeeItComing.Hint": "Mark a Stress to roll a d4 and add it to your Evasion against this attack.",
+  "EE.Features.ISeeItComing.Flavor": "I See It Coming — Evasion {before} → {after} against this attack.",
 
   "EE.Features.CrimsonRite.ChooseTitle": "Crimson Rite",
   "EE.Features.CrimsonRite.ChooseIntro": "Which of your active weapons does the rite enchant?",

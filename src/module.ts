@@ -16,6 +16,7 @@ import { registerCrimsonRite } from "./daggerheart/crimson-rite.js";
 import { registerDualityOutcome } from "./daggerheart/duality-outcome.js";
 import { registerFearless } from "./daggerheart/fearless.js";
 import { registerFeatureAsk } from "./daggerheart/feature-ask.js";
+import { registerISeeItComing } from "./daggerheart/i-see-it-coming.js";
 import { registerReach } from "./daggerheart/reach.js";
 import { installRollPipeline } from "./daggerheart/roll-pipeline.js";
 import { registerHotbarPages } from "./hotbar/hotbar-pages.js";
@@ -61,6 +62,7 @@ Hooks.once("init", async () => {
   registerBloodSpike();
   registerFearless();
   registerBloodMaledict();
+  registerISeeItComing();
   installRollPipeline();
   // Not a roll window: Crimson Rite is activated by an action and delivered as a
   // standing ActiveEffect, so it hooks the system directly and takes no part in

@@ -188,6 +188,23 @@ declare global {
    */
   function fromUuidSync(uuid: string, options?: AnyObject): AnyObject | null;
 
+  /**
+   * Foundry's dice roller.
+   *
+   * A `class` rather than a `const`, because this is the one global the module
+   * *constructs* — a feature that has to roll a die of its own builds one here.
+   * Everything the module receives from the system's roll pipeline is a
+   * `DualityRoll`/`DamageRoll` subclass and travels as `AnyObject`, so only the
+   * members used to make and post a plain roll are declared.
+   */
+  class Roll {
+    constructor(formula: string, data?: AnyObject, options?: AnyObject);
+    readonly formula: string;
+    readonly total: number;
+    evaluate(options?: AnyObject): Promise<Roll>;
+    toMessage(data?: AnyObject, options?: AnyObject): Promise<AnyObject | undefined>;
+  }
+
   /** Chat log entries. Only the members this module touches. */
   const ChatMessage: {
     create(data: AnyObject): Promise<AnyObject>;

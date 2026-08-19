@@ -225,6 +225,19 @@ export function registerSettings(): void {
     default: true,
   });
 
+  // World-scoped for the same reason as Blood Maledict, whose window this shares:
+  // the attack is rolled on the GM's client and the prompt is answered on the
+  // player's, so a per-client answer would let the two ends disagree about
+  // whether the reaction exists at all.
+  game.settings.register(MODULE_ID, SETTINGS.iSeeItComingEvasion, {
+    name: "EE.Settings.ISeeItComingEvasion.Name",
+    hint: "EE.Settings.ISeeItComingEvasion.Hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: true,
+  });
+
   // World-scoped: only a GM can write actor documents, and the artwork this
   // changes is shared by the whole table.
   game.settings.register(MODULE_ID, SETTINGS.voidHybridFormPortrait, {
