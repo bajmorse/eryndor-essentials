@@ -200,6 +200,19 @@ export function registerSettings(): void {
     default: true,
   });
 
+  // World-scoped like the others, and for a further reason: this one decides
+  // whether an ActiveEffect gets written to a sheet, and a per-client answer
+  // would let one player's rite exist and another's not. Read at activation and
+  // again per damage roll, so turning it off stops new rites immediately.
+  game.settings.register(MODULE_ID, SETTINGS.crimsonRiteEnchant, {
+    name: "EE.Settings.CrimsonRiteEnchant.Name",
+    hint: "EE.Settings.CrimsonRiteEnchant.Hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: true,
+  });
+
   // World-scoped: only a GM can write actor documents, and the artwork this
   // changes is shared by the whole table.
   game.settings.register(MODULE_ID, SETTINGS.voidHybridFormPortrait, {

@@ -76,6 +76,8 @@
   "EE.Settings.FearlessFearToHope.Hint": "Let a character holding the Infernis \"Fearless\" feature use it: whenever they roll with Fear, offer to mark 2 Stress and turn it into a roll with Hope. Taking the offer converts the roll before anything reacts to the Fear — the GM gains no Fear, Fear countdowns don't advance, and other features that trigger on a Fear roll never fire. Declining, or letting the prompt time out, leaves the roll exactly as it landed.",
   "EE.Settings.BloodMaledictReroll.Name": "Blood Maledict",
   "EE.Settings.BloodMaledictReroll.Hint": "Let a character holding the Void's \"Blood Maledict\" feature use it: whenever an adversary within Close range succeeds on an attack roll, offer to spend 3 Hope and make it reroll with disadvantage. The GM's client pauses the attack and puts the question on the character's owner's screen; taking it replaces the roll before the chat card is posted, so the original hit never becomes damage. Needs both actors on the scene — a range that can't be measured raises no prompt.",
+  "EE.Settings.CrimsonRiteEnchant.Name": "Crimson Rite",
+  "EE.Settings.CrimsonRiteEnchant.Hint": "Make the Void's \"Crimson Rite\" feature do what it says. Marking the Hit Point asks which active weapon to enchant (silently, if only one is equipped) and grants that weapon a tier-scaled bonus — 1d4 rising to 4d4 — which the system expires at the character's next rest, short or long. Using the feature again moves the rite rather than stacking it. The enchanted weapon's damage also counts as magic, which is the part the Void's own tier effects never managed on an ordinary physical weapon.",
 
   "EE.Settings.VoidHybridFormPortrait.Name": "Sync portrait to Hybrid Form",
   "EE.Settings.VoidHybridFormPortrait.Hint": "When The Void puts an Order of the Lycan character into Hybrid Form, change the character sheet portrait to match the transformed token art, and change it back when the form is dropped.",
@@ -123,6 +125,13 @@
 
   "EE.Features.BloodMaledict.Label": "Blood Maledict",
   "EE.Features.BloodMaledict.Hint": "Spend 3 Hope to make them reroll this attack with disadvantage.",
+
+  "EE.Features.CrimsonRite.ChooseTitle": "Crimson Rite",
+  "EE.Features.CrimsonRite.ChooseIntro": "Which of your active weapons does the rite enchant?",
+  "EE.Features.CrimsonRite.EffectName": "Crimson Rite ({weapon})",
+  "EE.Features.CrimsonRite.Applied": "Crimson Rite: {weapon} deals an extra {formula} magic damage until your next rest.",
+  "EE.Features.CrimsonRite.NoWeapon": "Crimson Rite needs an equipped weapon to enchant, and you have none.",
+  "EE.Features.CrimsonRite.Unequipped": "Crimson Rite ended — the weapon it enchanted is no longer equipped in that slot.",
 
   "EE.Settings.DaggerheartUtilitiesMenu.Name": "Daggerheart Utilities",
   "EE.Settings.DaggerheartUtilitiesMenu.Label": "Configure Utilities",

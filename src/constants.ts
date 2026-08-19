@@ -132,6 +132,18 @@ export const SETTINGS = {
    */
   bloodMaledictReroll: "bloodMaledictReroll",
   /**
+   * Master switch for automating **Crimson Rite** (Blood Hunter, *Void for
+   * Daggerheart*): marking the Hit Point enchants a chosen active weapon with
+   * tier-scaled bonus damage that expires at the next rest, and gives that
+   * weapon's damage the `magical` type. See `daggerheart/crimson-rite.ts`.
+   *
+   * World-scoped and **on** by default, for the same reasons as
+   * {@link SETTINGS.fearlessFearToHope}. Unlike the two roll-window features this
+   * one writes a lasting ActiveEffect, so turning it off stops new rites being
+   * applied but leaves any already on a sheet — they still expire on their own.
+   */
+  crimsonRiteEnchant: "crimsonRiteEnchant",
+  /**
    * Repoint a portrait raised by Ginzzzu's Portraits & NPC Dock when the actor's
    * artwork changes underneath it — something that module doesn't do for `img`.
    * World-scoped for consistency with the other feature switches, even though the
@@ -270,6 +282,16 @@ export const FLAGS = {
    * a renamed or reworded card at the rule it is meant to be.
    */
   featureId: "featureId",
+  /**
+   * Marks the ActiveEffect this module creates for an active **Crimson Rite**,
+   * and records what it enchanted: `{ slot, weaponId, weaponUuid }`.
+   *
+   * The flag is what makes the effect *ours* — it is how the next activation
+   * finds the previous rite to replace ("or you use this feature again"), and how
+   * the damage hook knows which weapon should be dealing magic damage. A rite
+   * effect someone builds by hand without it is left entirely alone.
+   */
+  crimsonRite: "crimsonRite",
 } as const;
 
 /** Foundry template paths (served from the module root at runtime). */

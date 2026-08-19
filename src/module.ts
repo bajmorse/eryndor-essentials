@@ -11,6 +11,7 @@ import { registerDeckLimitGuard } from "./daggerheart/deck-limit-guard.js";
 import { registerDeckLimitWizard } from "./daggerheart/deck-limit-wizard.js";
 import { registerAdversaryAttack } from "./daggerheart/adversary-attack.js";
 import { registerBloodMaledict } from "./daggerheart/blood-maledict.js";
+import { registerCrimsonRite } from "./daggerheart/crimson-rite.js";
 import { registerDualityOutcome } from "./daggerheart/duality-outcome.js";
 import { registerFearless } from "./daggerheart/fearless.js";
 import { registerFeatureAsk } from "./daggerheart/feature-ask.js";
@@ -55,6 +56,10 @@ Hooks.once("init", async () => {
   registerFearless();
   registerBloodMaledict();
   installRollPipeline();
+  // Not a roll window: Crimson Rite is activated by an action and delivered as a
+  // standing ActiveEffect, so it hooks the system directly and takes no part in
+  // the pipeline's ordering.
+  registerCrimsonRite();
   // Third-party integrations: each hooks nothing unless its module is active.
   registerVoidHybridForm();
   registerVoidHybridFormStressEnd();

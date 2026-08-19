@@ -467,6 +467,60 @@ loads).
   window only knows "a non-Duality attack roll", and *adversary* is this card's
   wording. Both ends of the table need the module enabled: the prompt is raised on
   the GM's client and shown on the owner's.
+- **Crimson Rite** (`src/daggerheart/crimson-rite.ts`) — the Blood Hunter's
+  (*Void for Daggerheart*) "Mark a Hit Point to enchant one of your active weapons
+  … until the end of your next rest or you use this feature again … an extra 1d4
+  magic damage", scaling to 4d4.
+  `Compendium.the-void-unofficial.classes.Item.otb0ThXWuqQzzWho`. World setting
+  `crimsonRiteEnchant`, **on** by default, on the **General** tab of
+  `daggerheartAutomationMenu`. **Not a roll window** — it is the first feature here
+  activated by an *action* and delivered as a standing ActiveEffect, so it hooks
+  the system directly and is registered after `installRollPipeline()`. Read this
+  entry before automating another feature of that shape.
+  - **The Void's four shipped "Crimson Rite: Tier N" effects do nothing**, and the
+    reason generalizes: `DamageRoll.applyBaseBonus` pulls type bonuses **per damage
+    part, keyed on that part's own types** (`options.damageTypes?.forEach(t =>
+    getBonus(\`${type}.${t}\`))`). They write to
+    `system.bonuses.damage.magical.dice`, and an ordinary weapon's part is
+    `type: ["physical"]` — so the bucket is never consulted and enabling one is a
+    silent no-op. (They also write `"+2d4"`; `formatModifier` supplies its own
+    operator, and the system's own `sharp` armour feature writes an unsigned
+    `"1d4"`. Copy `sharp`, not the Void.)
+  - **Weapon scoping is native — use it.** `system.bonuses.damage.primaryWeapon` /
+    `secondaryWeapon` are gated on the damage roll's source item *being* the
+    equipped weapon in that slot (`options.source.item === this.data[slot]?.id`),
+    which is the only per-weapon damage scoping the system offers. A character has
+    exactly two weapon slots, so "one of your active weapons" is always a
+    primary-or-secondary choice. The bonus also shows up in the damage dialog as a
+    toggleable "Weapon Bonus". `getActionRelevantEffects` feeds it from
+    `actor.allApplicableEffects()`, so an effect created straight onto the actor
+    qualifies.
+  - **Rest expiry is native too.** `system.duration.type` accepts the ids in
+    `CONFIG.DH.EFFECTS.activeEffectDurations`; the system's `expireActiveEffects`
+    runs on both rests and `refreshIsAllowed` expires a **`shortRest`** duration on
+    *either* kind — so `shortRest` is "until the end of your next rest", while
+    `longRest` would survive a short one. Gated on the world's
+    `Automation.autoExpireActiveEffects`, which is why the module warns when that
+    is off rather than silently granting a permanent rite.
+  - **Bonus dice can never be their own damage part.** `Actor#takeDamage` runs the
+    main damage through `convertDamageToThreshold`, and Daggerheart thresholds work
+    on the **total** — two parts would be converted twice and mark the wrong number
+    of Hit Points. Anything adding damage to an existing attack has to join that
+    attack's formula, and therefore inherits its damage types. This is the one real
+    constraint on the whole class of "deals an extra Nd… of *some other* type"
+    features; do not try to model them as separate parts.
+  - Consequently the only code this needs is a `daggerheart.preRoll` listener
+    adding `magical` to the enchanted weapon's `config.damageFormula.damageTypes`
+    (that hook fires for damage rolls too — `DamageRoll` inherits `buildConfigure`
+    and adds no hook suffix). The weapon's *base* damage becomes magic as well,
+    which is a deviation in the character's favour: `getResistanceStatus` requires
+    resistance to **all** of a part's types before it counts.
+  - **The two halves are anchored differently** — dice to the slot, damage type to
+    the weapon — so an `updateItem`/`deleteItem` guard ends the rite when the
+    enchanted weapon leaves its slot, rather than letting them come apart. Any
+    manually-enabled Void tier effect is disabled on activation, since giving the
+    weapon a `magical` type is exactly the condition that would wake it up and
+    stack it on top.
 - **Deck Limit** (`src/daggerheart/deck-limit.ts`, settings only so far) — models
   the table's card pool as physical decks: a card in one character's hands isn't
   available to anyone else. World settings `deckLimitEnabled` (off by default)
