@@ -1,0 +1,72 @@
+{{!-- Shared body of the four content tabs (Ancestries, Communities, Classes,
+     Domains) of the Daggerheart Automation window. All four render this same
+     file; what differs is the `catalog` their part context carries — see
+     src/apps/automation-catalog.ts.
+
+     A dropdown picks one entry and every entry's panel is rendered, all but the
+     selected one `hidden`. That keeps every switch in the DOM, which is what lets
+     one Save cover the whole window (ConfigWindow#onSave reads inputs by `name`,
+     and a hidden one still answers).
+
+     `tab` comes from _preparePartContext, and the data-group/data-tab pair is
+     what changeTab looks for. --}}
+<section class="tab {{tab.cssClass}}" data-group="{{tab.group}}" data-tab="{{tab.id}}">
+
+  {{#if catalog.voidBlocked}}
+    <p class="notes ee-status-warn">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      {{localize "EE.Automation.VoidMissing"}}
+    </p>
+  {{/if}}
+
+  <div class="form-group">
+    <label for="ee-pick-{{catalog.id}}">{{localize catalog.selectLabel}}</label>
+    <div class="form-fields">
+      {{!-- No `name`, so onSave's input sweep never sees it: this picks what to
+            show, it isn't a setting. --}}
+      <select id="ee-pick-{{catalog.id}}" data-ee-catalog="{{catalog.id}}">
+        <optgroup label="{{localize 'EE.Automation.SourceCore'}}">
+          {{#each catalog.coreEntries}}
+            <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+          {{/each}}
+        </optgroup>
+        {{!-- ☾ rather than a Font Awesome moon because an <option> renders text
+              only — no markup, no icon font. `title` for the same reason: Foundry's
+              data-tooltip binds to hoverable elements, which an <option> in a
+              native select is not. --}}
+        <optgroup label="☾ {{localize 'EE.Automation.SourceVoid'}}">
+          {{#each catalog.voidEntries}}
+            <option value="{{id}}" {{#if selected}}selected{{/if}}
+                    {{#if disabled}}disabled title="{{localize 'EE.Automation.VoidRequired'}}"{{/if}}>☾ {{label}}</option>
+          {{/each}}
+        </optgroup>
+      </select>
+    </div>
+  </div>
+
+  {{#each catalog.entries}}
+    <div class="ee-catalog-panel" data-ee-panel="{{../catalog.id}}" data-entry="{{id}}"
+         {{#unless selected}}hidden{{/unless}}>
+      {{#if groups}}
+        {{#each groups}}
+          <fieldset>
+            <legend>{{localize legend}}</legend>
+            {{#each settings}}
+              <div class="form-group">
+                <label for="ee-set-{{key}}">{{localize name}}</label>
+                <div class="form-fields">
+                  <input type="checkbox" id="ee-set-{{key}}" name="{{key}}"
+                         {{#if checked}}checked{{/if}} {{#if disabled}}disabled{{/if}}>
+                </div>
+                <p class="hint">{{localize hint}}</p>
+              </div>
+            {{/each}}
+          </fieldset>
+        {{/each}}
+      {{else}}
+        <p class="notes">{{localize "EE.Automation.NoOptions"}}</p>
+      {{/if}}
+    </div>
+  {{/each}}
+
+</section>

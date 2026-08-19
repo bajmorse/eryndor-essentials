@@ -304,8 +304,12 @@ export const TEMPLATES = {
   tokenBar: `modules/${MODULE_ID}/templates/token-bar.hbs`,
   /** "General" tab of the Daggerheart Automation window. */
   automationGeneral: `modules/${MODULE_ID}/templates/daggerheart-automation-general.hbs`,
-  /** "The Void" tab of the Daggerheart Automation window. */
-  automationVoid: `modules/${MODULE_ID}/templates/daggerheart-automation-void.hbs`,
+  /**
+   * Shared body of the Daggerheart Automation window's four *content* tabs
+   * (Ancestries, Communities, Classes, Domains) — one template, four parts, each
+   * handed its own catalog. See `src/apps/automation-catalog.ts`.
+   */
+  automationCatalog: `modules/${MODULE_ID}/templates/daggerheart-automation-catalog.hbs`,
   /** Body of the (untabbed) Daggerheart Utilities window. */
   daggerheartUtilities: `modules/${MODULE_ID}/templates/daggerheart-utilities.hbs`,
   /** Save/Cancel bar, shared by every settings window here. */

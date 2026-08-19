@@ -69,16 +69,30 @@
   gap: 0.5rem;
 }
 
-/* Integration status lines: present tense, so the icon carries the meaning. */
-.ee-config .ee-status-ok,
+/* The per-entry panel behind a content tab's dropdown (Ancestries, Communities,
+ * Classes, Domains). Every entry's panel is in the DOM at once so one Save covers
+ * the window; all but the selected one carry `hidden`, which the sibling rule
+ * below has to restate because this one gives the element a `display` of its own
+ * and would otherwise win. Column layout because the panel is a plain <div> —
+ * unlike a `.tab`, it inherits none from `standard-form`. */
+.ee-config .ee-catalog-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ee-config .ee-catalog-panel[hidden] {
+  display: none;
+}
+
+/* Integration status line — raised only when an optional module a tab depends on
+ * is missing. There is deliberately no "…is active" counterpart: a green tick
+ * repeated on four tabs is noise, and the absence of this line says the same. */
 .ee-config .ee-status-warn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   margin: 0;
-}
-
-.ee-config .ee-status-warn {
   color: var(--color-level-warning, #cc7722);
 }
 

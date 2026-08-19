@@ -1,8 +1,10 @@
 {{!-- "General" tab of the Daggerheart Automation window — rules the Daggerheart
-     system states but leaves the table to apply, with no third-party module
-     involved. The `name` on each input matches its key in SETTINGS, which is how
-     ConfigWindow reads them back on save. `tab` comes from _preparePartContext,
-     and the data-group/data-tab pair is what changeTab looks for. --}}
+     system states but leaves the table to apply, and that belong to no single
+     piece of character content (anything that does is filed under its ancestry,
+     community, class or domain tab instead). The `name` on each input matches its
+     key in SETTINGS, which is how ConfigWindow reads them back on save. `tab`
+     comes from _preparePartContext, and the data-group/data-tab pair is what
+     changeTab looks for. --}}
 <section class="tab {{tab.cssClass}}" data-group="{{tab.group}}" data-tab="{{tab.id}}">
 
   <fieldset>
@@ -15,37 +17,6 @@
                {{#if reach}}checked{{/if}}>
       </div>
       <p class="hint">{{localize "EE.Settings.ReachMeleeAsVeryClose.Hint"}}</p>
-    </div>
-  </fieldset>
-
-  <fieldset>
-    <legend>{{localize "EE.Automation.FeaturesLegend"}}</legend>
-
-    <div class="form-group">
-      <label for="ee-fearless">{{localize "EE.Settings.FearlessFearToHope.Name"}}</label>
-      <div class="form-fields">
-        <input type="checkbox" id="ee-fearless" name="fearlessFearToHope"
-               {{#if fearless}}checked{{/if}}>
-      </div>
-      <p class="hint">{{localize "EE.Settings.FearlessFearToHope.Hint"}}</p>
-    </div>
-
-    <div class="form-group">
-      <label for="ee-blood-maledict">{{localize "EE.Settings.BloodMaledictReroll.Name"}}</label>
-      <div class="form-fields">
-        <input type="checkbox" id="ee-blood-maledict" name="bloodMaledictReroll"
-               {{#if bloodMaledict}}checked{{/if}}>
-      </div>
-      <p class="hint">{{localize "EE.Settings.BloodMaledictReroll.Hint"}}</p>
-    </div>
-
-    <div class="form-group">
-      <label for="ee-crimson-rite">{{localize "EE.Settings.CrimsonRiteEnchant.Name"}}</label>
-      <div class="form-fields">
-        <input type="checkbox" id="ee-crimson-rite" name="crimsonRiteEnchant"
-               {{#if crimsonRite}}checked{{/if}}>
-      </div>
-      <p class="hint">{{localize "EE.Settings.CrimsonRiteEnchant.Hint"}}</p>
     </div>
   </fieldset>
 

@@ -743,6 +743,26 @@ styles/ templates/ lang/ packs/   served from the repo root as-is
   input whose `name` is the key, holding numbers to the field's own `min`/`max`
   since nothing here goes through form submission (which is what would otherwise
   enforce them).
+  - **A switch for an automated feature goes in the catalog, not a template.**
+    The Daggerheart Automation window has a "General" tab plus one tab per kind of
+    character content — Ancestries, Communities, Classes, Domains — and a rule is
+    filed under the card that prints it (Fearless under Infernis; Blood Maledict,
+    Crimson Rite and Hybrid Form under Blood Hunter). All four content tabs render
+    the *same* template from data in `src/apps/automation-catalog.ts`, so adding a
+    switch is one `CatalogSetting` in the right entry's `groups`. `settingKeys` is
+    derived from that data by `catalogSettingKeys()` — never list a key in both, and
+    never add one to only the catalog's *template*, or it would render and then
+    silently refuse to save. General is for rules belonging to no single card.
+  - Content tabs use a `<select>` rather than nested tabs (18 ancestries before
+    The Void adds six), with every entry's panel in the DOM at once and all but the
+    selected one `hidden` — that is what keeps one Save covering the whole window.
+    Switching panels needs no listener: `ConfigWindow#_onRender` calls
+    `refreshControls` after every render *and* every `change`, so the panels are
+    re-derived from whatever the selects currently say.
+  - Entries from The Void (Unofficial) sit in their own `<optgroup>`, marked with a
+    literal `☾` and `disabled` when that module is inactive. `☾` and `title=`
+    rather than a Font Awesome moon and `data-tooltip`, because an `<option>`
+    renders text only and a native select's options aren't hoverable elements.
 - **Templates**: add the path to `TEMPLATES` in `constants.ts`; they're preloaded
   via `loadTemplates(Object.values(TEMPLATES))` in `init`.
 - **Types**: there's no full Foundry type package — `src/types/foundry.d.ts` is a
@@ -751,7 +771,12 @@ styles/ templates/ lang/ packs/   served from the repo root as-is
   the surface grows large.)
 - **Localization**: every user-facing string lives in `lang/en.json` under the
   `EE.` prefix — `game.i18n.localize("EE.…")` in TS, `{{localize "EE.…"}}` in
-  templates. Don't hardcode display strings.
+  templates. Don't hardcode display strings. One documented exception: the
+  *content names* in `src/apps/automation-catalog.ts` ("Clank", "Blood Hunter") are
+  literal, because they are the names of compendium documents that neither the
+  system nor The Void translates — a `lang/` entry for them would advertise a
+  translation the content itself would never have. Everything the window says
+  around them is localized as usual.
 
 ## Foundry gotchas (apply when you build the features)
 
