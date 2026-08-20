@@ -92,6 +92,8 @@
   "EE.Settings.CrimsonRiteEnchant.Hint": "Make the Void's \"Crimson Rite\" feature do what it says. Marking the Hit Point asks which active weapon to enchant (silently, if only one is equipped) and grants that weapon a tier-scaled bonus — 1d4 rising to 4d4 — which the system expires at the character's next rest, short or long. Using the feature again moves the rite rather than stacking it. The enchanted weapon's damage also counts as magic, which is the part the Void's own tier effects never managed on an ordinary physical weapon.",
   "EE.Settings.BloodSpikeSpendHope.Name": "Blood Spike",
   "EE.Settings.BloodSpikeSpendHope.Hint": "Resolve the Void's \"Blood Spike\" card in one press. Either of its attack actions now rolls the die the rule calls for — a d10 once the caster has 3 or more Hit Points marked, a d8 below that — so the d8 and d10 buttons stop being a choice you can get wrong, in either direction. On a hit, the caster is asked whether to spend the Hope: taking it rolls the damage as usual, declining rolls none, and the target marks its Stress either way (that part is already the card's own damage part, applied only to targets that were hit). A miss asks nothing. The card's separate \"Spend Hope\" action is left alone, as the manual route for a cast resolved without a target.",
+  "EE.Settings.HoldThemOffExtraTargets.Name": "Hold Them Off",
+  "EE.Settings.HoldThemOffExtraTargets.Hint": "Let a Ranger holding \"Hold Them Off\" use it: after a successful attack with a weapon, offer to spend 3 Hope and pick up to two more adversaries within the attack's range. Whoever is picked is added to the attack itself before the chat card is posted, so the one roll and the one damage roll resolve against all of them at once — hit or miss decided per adversary against their own Difficulty, exactly as if they had been targeted before the swing. The picker lists only adversaries the player can see and whose distance can be measured; it never shows anyone's Difficulty. Needs the attacker on the scene — a range that can't be measured raises no prompt, and neither does an unarmed strike or a Ranger below 3 Hope.",
   "EE.Settings.ISeeItComingEvasion.Name": "I See It Coming",
   "EE.Settings.ISeeItComingEvasion.Hint": "Let a character holding the Bone domain's \"I See It Coming\" card use it: whenever an attack made from beyond Melee range lands on them, offer to mark a Stress, roll a d4 and add it to their Evasion against that attack. The attacker's client pauses the roll and puts the question on the character's owner's screen; taking it can turn the hit into a miss before the chat card is posted, so the hit never becomes damage. The d4 is posted to chat, whispered as far as the attack itself. Needs both actors on the scene — a range that can't be measured raises no prompt, and neither does an attack rolled against a fixed difficulty rather than Evasion.",
 
@@ -172,6 +174,13 @@
   "EE.Features.BloodSpike.Hint": "Deal the spike's magic damage, rolling {die}. Decline and it deals none — the target marks its Stress either way.",
   "EE.Features.BloodSpike.HintEscalated": "Deal the spike's magic damage. You have {marks} Hit Points marked, so the die is {die}. Decline and it deals none — the target marks its Stress either way.",
   "EE.Features.BloodSpike.NoHope": "Blood Spike hit, but you have no Hope to spend — the target marks a Stress and takes no damage.",
+
+  "EE.Features.HoldThemOff.Title": "Hold Them Off",
+  "EE.Features.HoldThemOff.Intro": "Your {weapon} hit {targets}. Spend {hope} Hope to catch up to two more adversaries within {range} with the same roll.",
+  "EE.Features.HoldThemOff.IntroNoTarget": "Your {weapon} attack succeeded. Spend {hope} Hope to catch up to two adversaries within {range} with the same roll.",
+  "EE.Features.HoldThemOff.Confirm": "Spend {hope} Hope",
+  "EE.Features.HoldThemOff.Decline": "Keep your Hope",
+  "EE.Features.HoldThemOff.Distance": "{distance} {units} away",
 
   "EE.Settings.DaggerheartUtilitiesMenu.Name": "Daggerheart Utilities",
   "EE.Settings.DaggerheartUtilitiesMenu.Label": "Configure Utilities",

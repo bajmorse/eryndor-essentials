@@ -68,7 +68,7 @@
  */
 import { LOG_PREFIX, MODULE_ID, SETTINGS, FLAGS } from "../constants.js";
 import { chooseOffers, type PromptHeadline, type PromptParty } from "./feature-prompt.js";
-import { resourceUpdatesFor } from "./feature-registry.js";
+import { chargeCosts } from "./feature-registry.js";
 import { registerRollWindow, rollTypeOf, showDiceEarly } from "./roll-pipeline.js";
 
 /** The Void Item this comes from — matched ahead of the printed name. */
@@ -218,21 +218,6 @@ function headlineFor(actor: AnyObject, hits: PromptParty[], isCritical: boolean)
   };
 }
 
-/** Charge the Hope, folded into the roll's own pending update where possible. */
-function spendHope(actor: AnyObject, config: AnyObject): void {
-  const updates = resourceUpdatesFor(actor, [{ key: HOPE, value: HOPE_COST }]);
-
-  const pending = config["resourceUpdates"];
-  if (pending?.addResources) {
-    pending.addResources(updates);
-    return;
-  }
-
-  // No pending map — pay directly rather than silently skip the price.
-  console.debug(`${LOG_PREFIX} Blood Spike: no pending resource update; charging directly.`);
-  void actor["modifyResource"]?.(updates);
-}
-
 /**
  * Ask whether to spend the Hope, and record the answer for the damage roll.
  *
@@ -291,7 +276,7 @@ async function runBloodSpikeWindow(roll: AnyObject, config: AnyObject): Promise<
 
   const spend = chosen.has(OFFER_ID);
   config[DECISION] = spend;
-  if (spend) spendHope(actor, config);
+  if (spend) chargeCosts(actor, config, [{ key: HOPE, value: HOPE_COST }]);
 }
 
 /**

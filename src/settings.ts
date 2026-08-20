@@ -267,6 +267,18 @@ export function registerSettings(): void {
     default: true,
   });
 
+  // World-scoped like the rest, though this one is decided entirely on the
+  // attacking player's own client: it changes who an attack resolves against, and
+  // that has to be one answer for the table rather than a per-client preference.
+  game.settings.register(MODULE_ID, SETTINGS.holdThemOffExtraTargets, {
+    name: "EE.Settings.HoldThemOffExtraTargets.Name",
+    hint: "EE.Settings.HoldThemOffExtraTargets.Hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: true,
+  });
+
   // World-scoped: only a GM can write actor documents, and the artwork this
   // changes is shared by the whole table.
   game.settings.register(MODULE_ID, SETTINGS.voidHybridFormPortrait, {

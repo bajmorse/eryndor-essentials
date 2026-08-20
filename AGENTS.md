@@ -663,6 +663,69 @@ loads).
   - The window's loop now breaks when `config.roll.success` stops being true: a
     dodged attack must not then be offered to the next character as an adversary
     that "succeeded".
+- **Hold Them Off** (`src/daggerheart/hold-them-off.ts`) — the Ranger's (SRD)
+  "Spend 3 Hope when you succeed on an attack with a weapon to use that same roll
+  against two additional adversaries within range of the attack."
+  `Compendium.daggerheart.classes.Item.2Cyb9ZeuAesf5Sb3`, a `feature` Item whose
+  one action ("Spend Hope") charges the 3 Hope and does nothing else. World
+  setting `holdThemOffExtraTargets`, **on** by default, under **Classes → Ranger**
+  in `daggerheartAutomationMenu`. Its own roll window, registered last, and the
+  first feature here that changes *who a roll resolves against* rather than what
+  it rolled.
+  - **The whole trick is that `config.targets` is just an array, and the seam is
+    ahead of everything that reads it.** `TargetField.execute` (20) gives each
+    entry a `hitResult`; `DamageField.applyDamage` (75) applies `config.damage` to
+    every entry that hit, cloning per target; `DHRoll.toMessage` deep-clones the
+    config into the card. All three are after `DHRoll.buildPost`, so "use that
+    same roll against two more" is literally *append two entries*. Nothing is
+    re-rolled and nothing is undone. Entries mirror `TargetField.formatTarget`
+    field for field; `hit` is decided the way `D20Roll.buildEvaluate` decides it,
+    and `hitResult` is deliberately left to `TargetField.execute`.
+  - **"with a weapon" is exact, not a heuristic.** The action's parent Item must be
+    a `weapon`. A character's unarmed strike lives on `actor.system.attack`, so
+    `config.source.item` is the *actor's* id and `actor.items.get` finds nothing —
+    which is the right answer for free. The action is resolved the way
+    `DHRoll.toMessage` resolves it: `system.actions` (an `ActionCollection`, so
+    `.get` works) first, then `system.attack`, which is not a member of it.
+  - Range is read off the **action**, so it is the Reach-adjusted derived value.
+    `range-bands.ts` grew `withinActionRange`, which handles the two ids
+    `RangeBand` excludes: `veryFar` has no threshold in
+    `VariantRules.rangeMeasurement` at all — the system saying it does not run out
+    inside a scene — so anything measurable is inside it, while `self` is a plain
+    no rather than a null.
+  - **The picker never shows Difficulty**, and deliberately does not filter on it:
+    the same roll against a different Difficulty may miss, which is the gamble the
+    feature is.
+  - **Candidate visibility is `document.hidden` and nothing else** — the same
+    filter `daggerheart-target-helper`'s candidate list uses, so the two agree
+    about who exists. The first version of this file also excluded
+    `token.visible === false` and anything flagged `invisibleToPlayers`, and
+    **both were wrong**: at this table *every* GM-dropped token carries that flag,
+    and the invisible-token feature exists precisely so those tokens stay
+    targetable and measurable, so the filter offered players nothing, ever.
+    `token.visible` fails the same way for an off-screen theatre-of-mind token.
+    Do not re-add either. (`Token#distanceTo` also never returns `Infinity` on a
+    gridless scene, whatever it looks like — it clamps *down* to `grid.distance`
+    inside the adjacency buffer.)
+  - **Every exit past the "is this actor's business" gate logs.** That gate
+    (`holderOf`) is silent because it declines on nearly every roll in the world;
+    everything after it — wrong action, no printed range, missed, not enough
+    Hope, no token, each out-of-range adversary and its distance — says so at
+    `console.debug`. A window that declines silently is undebuggable at the table,
+    which is exactly how the `invisibleToPlayers` bug above presented.
+  - `feature-prompt.ts` grew **`chooseUpTo`**, a second dialog shape: portraits and
+    distances, nothing pre-ticked, and a hard cap enforced by disabling the
+    unticked boxes once it is reached (re-capped in the callback, since the UI
+    limiter is one client's DOM). Deliberately *not* folded into `chooseOffers` —
+    that one asks "which of your features", where taking everything is the usual
+    answer; this asks "which of these people", where nothing is a default. Its
+    `waitWithTimeout` now takes an optional `onRender`, wired on the same `render`
+    callback the timeout already uses.
+  - `resourceUpdatesFor`'s partner **`chargeCosts(actor, config, costs)`** moved
+    into `feature-registry.ts` out of `blood-spike.ts`, which now calls it: fold
+    into `config.resourceUpdates` when the roller is the payer, fall back to a
+    direct `modifyResource` when no map exists. A cost that falls on someone *else*
+    still goes direct — see `adversary-attack.ts`.
 - **Deck Limit** (`src/daggerheart/deck-limit.ts`, settings only so far) — models
   the table's card pool as physical decks: a card in one character's hands isn't
   available to anyone else. World settings `deckLimitEnabled` (off by default)
@@ -889,8 +952,9 @@ styles/ templates/ lang/ packs/   served from the repo root as-is
     The Daggerheart Automation window has a "General" tab plus one tab per kind of
     character content — Ancestries, Communities, Classes, Domains — and a rule is
     filed under the card that prints it (Fearless under Infernis; Blood Maledict,
-    Crimson Rite and Hybrid Form under Blood Hunter; Blood Spike under the Blood
-    domain, I See It Coming under Bone). All four content tabs render
+    Crimson Rite and Hybrid Form under Blood Hunter; Hold Them Off under Ranger;
+    Blood Spike under the Blood domain, I See It Coming under Bone). All four
+    content tabs render
     the *same* template from data in `src/apps/automation-catalog.ts`, so adding a
     switch is one `CatalogSetting` in the right entry's `groups`. `settingKeys` is
     derived from that data by `catalogSettingKeys()` — never list a key in both, and

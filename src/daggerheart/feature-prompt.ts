@@ -22,6 +22,7 @@
  * whose Hope it costs — so the whole question has to survive a trip over a
  * socket. See `feature-ask.ts`.
  */
+import { LOG_PREFIX } from "../constants.js";
 import { escapeHtml } from "../utils/escape-html.js";
 
 /**
@@ -151,7 +152,10 @@ function describeOffer(offer: PromptOffer): string {
  * than leaving a live one on screen whose answer would be ignored. `rejectClose:
  * false` makes dismissal resolve `null` instead of throwing.
  */
-async function waitWithTimeout(config: AnyObject): Promise<unknown> {
+async function waitWithTimeout(
+  config: AnyObject,
+  onRender?: (root: HTMLElement) => void,
+): Promise<unknown> {
   let dialog: AnyObject | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
 
@@ -174,6 +178,17 @@ async function waitWithTimeout(config: AnyObject): Promise<unknown> {
     rejectClose: false,
     render: (_event: Event, instance: AnyObject) => {
       dialog = instance;
+      // A dialog whose content needs live behaviour (see `chooseUpTo`) wires it
+      // here, on the same callback, rather than through a second one the caller
+      // would have to remember not to pass — `render` is spread away above.
+      try {
+        const root = instance?.["element"] as HTMLElement | undefined;
+        if (root && onRender) onRender(root);
+      } catch (error) {
+        // The dialog is already on screen and answerable; losing a nicety in it
+        // must not cost the player the question.
+        console.warn(`${LOG_PREFIX} Feature prompt: could not wire up the dialog.`, error);
+      }
     },
   }).catch(() => null);
 
@@ -256,4 +271,126 @@ export async function chooseOffers(request: PromptRequest): Promise<Set<string>>
   const picked = (answer as AnyObject | null)?.["picked"];
   if (Array.isArray(picked)) for (const id of picked) chosen.add(String(id));
   return chosen;
+}
+
+/**
+ * One candidate in a {@link chooseUpTo} prompt: a party with an id to answer
+ * with, and an optional line of context under the name.
+ */
+export interface PromptChoice extends PromptParty {
+  /** What the answer identifies this choice by — a token id, in practice. */
+  id: string;
+  /** Localized supporting line — how far away this one is, and so on. */
+  detail?: string;
+}
+
+/** Everything needed to raise a {@link chooseUpTo} prompt. */
+export interface ChoiceRequest {
+  title: string;
+  /** The situation as a sentence, including what the choice will cost. */
+  intro: string;
+  choices: PromptChoice[];
+  /** How many may be taken. The dialog enforces it rather than trimming after. */
+  max: number;
+  /** Localized confirm button — it should name the price, not just say "OK". */
+  confirmLabel: string;
+  /**
+   * Localized decline button. Required rather than falling back to the shared
+   * `EE.Features.PromptSkip`: that one reads "leave the roll alone", which is
+   * right for a feature that would have *rewritten* a roll and wrong here, where
+   * declining just means the attack goes at whoever it already went at. Word it
+   * as the counterpart of {@link confirmLabel}, not as a cancel.
+   */
+  declineLabel: string;
+}
+
+/**
+ * Pick up to `max` of `request.choices`. Returns the ids taken, in the order
+ * they were offered; empty for "none", which is what dismissal and the timeout
+ * both mean.
+ *
+ * ## Why this isn't {@link chooseOffers}
+ *
+ * That one asks *which of your features do you want to use* — a fixed, pre-ticked
+ * list where taking everything is the usual answer. This asks *which of these
+ * people*, where nothing is a default, the list is whoever happens to be standing
+ * nearby, and there is a hard limit the rule sets. Same house style, opposite
+ * defaults; folding them together would mean a function whose every argument
+ * flipped some behaviour.
+ *
+ * Unlike `chooseOffers` there is no special case for a single choice: the
+ * checkbox is what says "you are choosing people, and you may choose none",
+ * which a two-button "Use it / Skip" would quietly turn back into a yes/no.
+ */
+export async function chooseUpTo(request: ChoiceRequest): Promise<string[]> {
+  const { title, intro, choices, max, confirmLabel, declineLabel } = request;
+  if (choices.length === 0 || max <= 0) return [];
+
+  const rows = choices
+    .map(
+      (choice) =>
+        `<label class="ee-feature-choice">
+          <input type="checkbox" name="${escapeHtml(choice.id)}">
+          <img class="ee-feature-portrait" src="${escapeHtml(
+            choice.img || PLACEHOLDER_PORTRAIT,
+          )}" alt="" draggable="false">
+          <span class="ee-feature-choice-name">${escapeHtml(choice.name)}</span>
+          ${choice.detail ? `<span class="hint">${escapeHtml(choice.detail)}</span>` : ""}
+        </label>`,
+    )
+    .join("");
+
+  const answer = await waitWithTimeout(
+    {
+      classes: ["ee-feature-prompt"],
+      window: { title },
+      content: `<p>${escapeHtml(intro)}</p><div class="ee-feature-choices">${rows}</div>`,
+      buttons: [
+        {
+          action: "confirm",
+          label: confirmLabel,
+          default: true,
+          callback: (_event: Event, button: AnyObject) => {
+            const form = button?.["form"];
+            // Re-capped here as well as in the UI: the limiter below is a
+            // convenience on one client's DOM, and this is the answer everything
+            // downstream acts on.
+            const picked = choices
+              .filter((choice) => form?.elements?.[choice.id]?.checked === true)
+              .slice(0, max)
+              .map((choice) => choice.id);
+            return { picked };
+          },
+        },
+        { action: "skip", label: declineLabel },
+      ],
+    },
+    (root) => limitSelection(root, max),
+  );
+
+  const picked = (answer as AnyObject | null)?.["picked"];
+  return Array.isArray(picked) ? picked.map(String) : [];
+}
+
+/**
+ * Stop the player ticking more than `max` boxes, by disabling the unticked ones
+ * once the limit is reached.
+ *
+ * Disabling rather than silently dropping the extras: "choose two" should feel
+ * like a limit while you are choosing, not like a surprise when you confirm. A
+ * disabled checkbox is still in `form.elements` and still reports `checked`, so
+ * the callback above reads the same answer either way.
+ */
+function limitSelection(root: HTMLElement, max: number): void {
+  const boxes = Array.from(
+    root.querySelectorAll<HTMLInputElement>('.ee-feature-choice input[type="checkbox"]'),
+  );
+
+  const sync = (): void => {
+    const taken = boxes.filter((box) => box.checked).length;
+    for (const box of boxes) box.disabled = !box.checked && taken >= max;
+  };
+
+  for (const box of boxes) box.addEventListener("change", sync);
+  sync();
 }

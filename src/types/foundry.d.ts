@@ -95,8 +95,11 @@ declare global {
      * for range-dependent effects and the token-hover readout, so anything
      * measuring range here has to go through it to agree with the table.
      *
-     * `NaN` when the canvas isn't ready, `Infinity` past the adjacency buffer
-     * on a gridless scene.
+     * `NaN` when the canvas isn't ready. On a **gridless** scene it also clamps:
+     * anything within `grid.distance * 1.75` of the measured edge-to-edge figure
+     * reports exactly `grid.distance`, so touching tokens read as one square
+     * rather than as zero. It does not return `Infinity` — the `Math.min` that
+     * looks like it might is `Math.min(distance, Infinity)`.
      */
     distanceTo(target: Token): number;
   }

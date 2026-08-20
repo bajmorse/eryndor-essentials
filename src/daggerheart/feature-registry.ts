@@ -223,6 +223,45 @@ export function resourceUpdatesFor(
 }
 
 /**
+ * Charge `costs` to the actor **who made this roll**, through the roll's own
+ * pending resource update where there is one.
+ *
+ * `config.resourceUpdates` is a `ResourceUpdateMap` bound to the rolling actor,
+ * which `DHBaseAction#use` flushes exactly once when the workflow ends. Folding
+ * into it rather than writing separately matters for more than tidiness: a
+ * Duality roll is about to queue its own +1 Hope into the same map, and two
+ * writes would race — where one merged write correctly nets the two against each
+ * other. `addResources` merges by key and sums, so it is safe to call after the
+ * roll has already put something there.
+ *
+ * Only for a cost the **roller** pays. A feature whose price falls on someone
+ * else — a reaction to an adversary's attack — must call `modifyResource` on that
+ * actor directly, since this map would charge the adversary; see
+ * `adversary-attack.ts`.
+ *
+ * The direct-write fallback exists because not every path that reaches a roll
+ * builds the map, and skipping the price silently would be the one failure a
+ * player could not see.
+ */
+export function chargeCosts(
+  actor: AnyObject,
+  config: AnyObject,
+  costs: readonly FeatureCost[],
+): void {
+  if (costs.length === 0) return;
+
+  const updates = resourceUpdatesFor(actor, costs);
+  const pending = config["resourceUpdates"];
+  if (pending?.addResources) {
+    pending.addResources(updates);
+    return;
+  }
+
+  console.debug(`${LOG_PREFIX} Features: no pending resource update; charging directly.`);
+  void actor["modifyResource"]?.(updates);
+}
+
+/**
  * Every feature that wants to act on this event, in application order.
  *
  * A feature has to clear four gates to be offered: its setting is on, the actor

@@ -168,6 +168,19 @@ export const SETTINGS = {
    */
   iSeeItComingEvasion: "iSeeItComingEvasion",
   /**
+   * Master switch for automating **Hold Them Off** (Ranger): after a successful
+   * weapon attack, offer to spend 3 Hope and add up to two more adversaries
+   * within the attack's range to the roll that already happened — before the
+   * chat card is posted and before the damage is rolled, so the same roll and the
+   * same damage reach all of them. See `daggerheart/hold-them-off.ts`.
+   *
+   * World-scoped and **on** by default, for the same reasons as
+   * {@link SETTINGS.fearlessFearToHope}. Unlike the reaction features this one is
+   * decided entirely on the attacking player's own client, so no socket relay is
+   * involved.
+   */
+  holdThemOffExtraTargets: "holdThemOffExtraTargets",
+  /**
    * Repoint a portrait raised by Ginzzzu's Portraits & NPC Dock when the actor's
    * artwork changes underneath it — something that module doesn't do for `img`.
    * World-scoped for consistency with the other feature switches, even though the

@@ -159,7 +159,22 @@ const CLASSES: Catalog = {
     plain("Bard"),
     plain("Druid"),
     plain("Guardian"),
-    plain("Ranger"),
+    {
+      id: "ranger",
+      label: "Ranger",
+      groups: [
+        {
+          legend: "EE.Automation.FeaturesLegend",
+          settings: [
+            {
+              key: SETTINGS.holdThemOffExtraTargets,
+              name: "EE.Settings.HoldThemOffExtraTargets.Name",
+              hint: "EE.Settings.HoldThemOffExtraTargets.Hint",
+            },
+          ],
+        },
+      ],
+    },
     plain("Rogue"),
     plain("Seraph"),
     plain("Sorcerer"),

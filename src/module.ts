@@ -16,6 +16,7 @@ import { registerCrimsonRite } from "./daggerheart/crimson-rite.js";
 import { registerDualityOutcome } from "./daggerheart/duality-outcome.js";
 import { registerFearless } from "./daggerheart/fearless.js";
 import { registerFeatureAsk } from "./daggerheart/feature-ask.js";
+import { registerHoldThemOff } from "./daggerheart/hold-them-off.js";
 import { registerISeeItComing } from "./daggerheart/i-see-it-coming.js";
 import { registerReach } from "./daggerheart/reach.js";
 import { installRollPipeline } from "./daggerheart/roll-pipeline.js";
@@ -64,6 +65,11 @@ Hooks.once("init", async () => {
   registerFearless();
   registerBloodMaledict();
   registerISeeItComing();
+  // Its own window too — one class feature's rule, and one that adds targets to a
+  // roll rather than reacting to one. Last of the windows, which costs nothing: a
+  // weapon attack is neither a spellcast nor an adversary's roll, so no other
+  // window is looking at it.
+  registerHoldThemOff();
   installRollPipeline();
   // Not a roll window: Crimson Rite is activated by an action and delivered as a
   // standing ActiveEffect, so it hooks the system directly and takes no part in

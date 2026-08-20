@@ -349,6 +349,19 @@
   margin: 0.15rem 0 0;
 }
 
+/* Hold these dialogs to a reading width. DialogV2 defaults to `width: auto`, so
+ * a one-line intro sentence sizes the whole window to itself and the result is a
+ * very wide, very short box that is harder to read than a wrapped paragraph.
+ * Nothing sets an inline width in that mode, so plain CSS wins. Two class names
+ * rather than one so this ties with core's own `.application.dialog` and takes
+ * it on load order, module styles coming last; the element tag is deliberately
+ * left out of the selector, since `application` is prepended by ApplicationV2
+ * for any framed window and is the part worth relying on. `min()` keeps the
+ * dialog inside a narrow viewport. */
+.application.ee-feature-prompt {
+  max-width: min(30rem, 90vw);
+}
+
 /* The prompt's "what just happened" banner: two round portraits with the
  * verdict between them (see PromptHeadline in src/daggerheart/feature-prompt.ts).
  * Both parties are the same flex basis so the verdict stays optically centred
@@ -411,6 +424,62 @@
 /* The offer below the banner, when there is only one and so no checkbox list. */
 .ee-feature-prompt .ee-feature-offer-single {
   margin: 0;
+}
+
+/* The "pick up to N of these people" list (chooseUpTo in feature-prompt.ts).
+ * Unlike the offer list above, nothing here starts ticked and the rows carry
+ * portraits — the player is choosing people, not confirming features. */
+.ee-feature-prompt .ee-feature-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.75rem 0 0.25rem;
+}
+
+/* Checkbox, portrait, name, then the distance pushed to the far end. */
+.ee-feature-prompt .ee-feature-choice {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.3rem 0.45rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.ee-feature-prompt .ee-feature-choice:hover {
+  border-color: var(--color-border-highlight, #ff6400);
+  background: rgb(255 255 255 / 6%);
+}
+
+/* Smaller than the banner's portraits — a row of these is a list, not a scene. */
+.ee-feature-prompt .ee-feature-choice .ee-feature-portrait {
+  width: 36px;
+  height: 36px;
+}
+
+.ee-feature-prompt .ee-feature-choice-name {
+  font-weight: bold;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.ee-feature-prompt .ee-feature-choice .hint {
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* The limit made visible: once two are ticked the rest stop responding, rather
+ * than accepting a third click and quietly dropping it at confirm time. */
+.ee-feature-prompt .ee-feature-choice:has(input:disabled) {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.ee-feature-prompt .ee-feature-choice:has(input:disabled):hover {
+  border-color: transparent;
+  background: none;
 }
 
 /* --- Roll request controls -------------------------------------------------- */

@@ -148,3 +148,27 @@ export function withinBand(distance: number | null, band: RangeBand): boolean | 
 
   return distance <= thresholds[band];
 }
+
+/**
+ * Is `distance` inside the range an *action* prints? Same contract as
+ * {@link withinBand} — null means "couldn't tell" — but it accepts the two ids
+ * from `CONFIG.DH.GENERAL.range` that {@link RangeBand} deliberately excludes,
+ * because an action's `range` field can hold either of them:
+ *
+ * - **`veryFar`** has no threshold in `VariantRules.rangeMeasurement` at all (the
+ *   setting stops at `far`), which is the system saying it does not run out
+ *   inside a scene. So anything measurable is inside it.
+ * - **`self`** reaches nobody else, so the answer is a plain no rather than a
+ *   null — there is nothing unknown about it.
+ *
+ * Anything else — an empty field, an id from a future system version — returns
+ * null, so a caller that must not guess about range still doesn't.
+ */
+export function withinActionRange(distance: number | null, range: string): boolean | null {
+  if (range === "self") return false;
+  if (range === "veryFar") return distance === null ? null : true;
+
+  return range === "melee" || range === "veryClose" || range === "close" || range === "far"
+    ? withinBand(distance, range)
+    : null;
+}
