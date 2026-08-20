@@ -1,11 +1,17 @@
 /**
- * The **General Features** window — the module's own behaviour, all of it
- * first-party and none of it tied to a particular system or third-party module.
+ * The **General Features** window — the module's own quality-of-life behaviour:
+ * how tokens look and move, and how the windows other modules put in front of a
+ * player behave.
  *
- * Untabbed on purpose: it is one short list of switches. Daggerheart-specific
- * integrations live in their own window (`daggerheart-automation-config.ts`).
+ * Untabbed on purpose: it is one short list of switches. A few of them close a
+ * gap in an optional third-party module (raised portraits, roll requests) rather
+ * than being strictly first-party — what keeps them here rather than in
+ * `daggerheart-automation-config.ts` is that none of them automate a *rule*.
+ * That window is for what a printed card says; this one is for how the table's
+ * interface behaves.
  */
 import { MODULE_ID, SETTINGS, TEMPLATES } from "../constants.js";
+import { quickActionsAvailable } from "../integrations/quickactions-roll-request.js";
 import { ConfigWindow } from "./config-window.js";
 
 /**
@@ -21,6 +27,15 @@ import { ConfigWindow } from "./config-window.js";
 const DEPENDENCIES: readonly (readonly [string, string])[] = [
   [SETTINGS.hideDmTokens, SETTINGS.blockPlayerTokenInteraction],
   [SETTINGS.tokenBar, SETTINGS.tokenBarLockSelection],
+] as const;
+
+/**
+ * Switches that only mean anything while Daggerheart: Quick Actions is active —
+ * both act on windows that module puts in front of a player.
+ */
+const QUICK_ACTIONS_SETTINGS: readonly string[] = [
+  SETTINGS.rollRequestClose,
+  SETTINGS.rollRequestOptions,
 ] as const;
 
 export class GeneralFeaturesConfig extends ConfigWindow {
@@ -44,6 +59,8 @@ export class GeneralFeaturesConfig extends ConfigWindow {
     SETTINGS.tokenBar,
     SETTINGS.tokenBarLockSelection,
     SETTINGS.refreshRaisedPortraits,
+    SETTINGS.rollRequestClose,
+    SETTINGS.rollRequestOptions,
   ] as const;
 
   async _prepareContext(options: AnyObject): Promise<AnyObject> {
@@ -57,6 +74,9 @@ export class GeneralFeaturesConfig extends ConfigWindow {
       tokenBar: GeneralFeaturesConfig.flag(SETTINGS.tokenBar),
       tokenBarLockSelection: GeneralFeaturesConfig.flag(SETTINGS.tokenBarLockSelection),
       refreshRaisedPortraits: GeneralFeaturesConfig.flag(SETTINGS.refreshRaisedPortraits),
+      rollRequestClose: GeneralFeaturesConfig.flag(SETTINGS.rollRequestClose),
+      rollRequestOptions: GeneralFeaturesConfig.flag(SETTINGS.rollRequestOptions),
+      quickActionsActive: quickActionsAvailable(),
     };
   }
 
@@ -71,6 +91,18 @@ export class GeneralFeaturesConfig extends ConfigWindow {
       const master = root.querySelector<HTMLInputElement>(`input[name='${masterKey}']`);
       const dependent = root.querySelector<HTMLInputElement>(`input[name='${dependentKey}']`);
       if (master && dependent) dependent.disabled = !master.checked;
+    }
+
+    // Both roll-request switches act on another module's windows, so with that
+    // module gone there is nothing for them to act on. Greyed rather than hidden,
+    // and paired with the warning line in the template, so the GM can see the
+    // feature exists and what it is waiting for. The stored values are untouched
+    // — a disabled checkbox keeps its state, so Save reads back what it had.
+    if (!quickActionsAvailable()) {
+      for (const key of QUICK_ACTIONS_SETTINGS) {
+        const input = root.querySelector<HTMLInputElement>(`input[name='${key}']`);
+        if (input) input.disabled = true;
+      }
     }
   }
 }

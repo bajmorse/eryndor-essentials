@@ -202,6 +202,58 @@ loads).
   is legitimately not what's shown. World setting `refreshRaisedPortraits` (default
   **on**). Portraits are **local DOM** built from a replicated flag, so unlike the
   Hybrid Form writer this runs on *every* client.
+- **Roll requests** (`src/integrations/quickactions-roll-request.ts`) — *optional*
+  integration with **Daggerheart: Quick Actions** (`daggerheart-quickactions`),
+  covering both surfaces of its *Request Roll* window: the Cinematic Mode prompt
+  and the whispered chat card. Two world settings, both **on** by default and both
+  on the **General Features** window (they change how another module's window
+  behaves, not what a card's rule says — which is the line between that window and
+  `daggerheartAutomationMenu`). Greyed out, with a warning line, when Quick Actions
+  isn't active.
+  - `rollRequestClose` — its cinematic prompt never closes after the roll. It tries
+    to, from a listener on `.cinematic-roll-container`, but the system's
+    `enricherRenderSetup` wraps every enriched-button handler in
+    `event.stopPropagation()`, so the click never bubbles that far. We close from a
+    **capture-phase** listener, which runs on the way down and can't be suppressed.
+    Only installed when we did *not* take the button over; when we did, the close is
+    driven by the roll completing.
+  - `rollRequestOptions` — puts Advantage/Disadvantage and the character's
+    Experiences (1 Hope each) on the request itself, and rolls with them. Needed
+    because `renderDualityButton` resolves the roller through the system's
+    `getCommandTarget`, which for a non-GM reads **only** `game.user.character` and
+    ignores the selected token — so a player driving their character from the
+    Tokens on Scene bar lands in the enricher's targetless branch, which hardcodes
+    `config.data = { experiences: {}, traits: {}, rules: {} }`. No experiences, no
+    trait modifier, no actor. We resolve selected token → `user.character` → lone
+    owned character, build the same config `enrichedDualityRoll` does, and set
+    `dialog.configure = false` (the card already asked what the roll dialog would).
+    Advantage the **GM** set in the request renders locked — it's a ruling, not a
+    default. Note the system never spends the Hope on this path at all: its dialog
+    fills `config.costs` and `enrichedDualityRoll` then calls
+    `resourceUpdates.updateResources()` without folding them in, the step the sheet's
+    own `#rollAttribute` does do — so we charge Hope straight onto `resourceUpdates`
+    rather than through `CostField`, which wants an Action context a request hasn't got.
+  - **Everything is intercepted in the capture phase**, and it has to be. Replacing
+    the button with `cloneNode(true)` (no listeners, same styling) *loses a race*:
+    `#callHooks` walks `inheritanceChain()` derived-class first, so
+    `renderCinematicRollPrompt` fires **before** `renderHandlebarsApplication` — and
+    that second hook is where the system's `enricherRenderSetup` lives, so it wires
+    whatever button is in the DOM by then, clone included. A capture listener on the
+    container runs before any target-phase listener regardless of registration order,
+    and `stopPropagation` there means the click never reaches the button at all.
+  - Quick Actions also has a **bubbling** close listener on
+    `.cinematic-roll-container` that can't tell one click from another. It has never
+    fired in its intended case (the system's `stopPropagation` beats it — that *is*
+    the `rollRequestClose` bug), so any click this module adds inside that container
+    is the first ever to reach it. Chips therefore stop their own clicks, and the
+    controls are anchored **before** the container rather than inside it. Get either
+    wrong and picking an Experience closes the prompt instead.
+  - The chat card
+    is identified by structure (Quick Actions' background image in the inline style
+    of `.card-content`, plus a `.duality-roll-button`), not a flag: it's their
+    document, and a `preCreate` stamp would only catch requests sent after the
+    feature was switched on. Card selections are DOM-only, so a chat re-render
+    rebuilds them unselected.
 - **Reach** (`src/daggerheart/reach.ts`) — the Giant ancestry's secondary feature
   ("Treat any weapon, ability, spell, or other feature that has a Melee range as
   though it had a Very Close range") is prose on a `feature` Item that the system

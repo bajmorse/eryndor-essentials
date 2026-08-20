@@ -27,6 +27,18 @@
   "EE.Settings.RefreshRaisedPortraits.Name": "Refresh raised portraits on artwork change",
   "EE.Settings.RefreshRaisedPortraits.Hint": "When a character's portrait image changes while Ginzzzu's Portraits is showing it, update the raised portrait to match instead of leaving the old artwork on screen. Portraits with a custom image or an active emotion are left alone.",
 
+  "EE.Settings.RollRequestClose.Name": "Close the cinematic roll prompt after rolling",
+  "EE.Settings.RollRequestClose.Hint": "When you request a roll in Cinematic Mode, close the player's prompt window once they've rolled instead of leaving it on screen over the result. Needs Daggerheart: Quick Actions.",
+
+  "EE.Settings.RollRequestOptions.Name": "Let players choose advantage and Experiences on a roll request",
+  "EE.Settings.RollRequestOptions.Hint": "Put Advantage/Disadvantage buttons and the character's Experiences (1 Hope each) on the roll request itself — on the cinematic prompt and on the whispered chat card — and roll it as the character the player is driving. Advantage or disadvantage you set in the request is shown but locked. Without this, a requested roll can't apply an Experience at all, and rolls with no character behind it for any player who has no assigned actor. Needs Daggerheart: Quick Actions.",
+
+  "EE.RollRequest.Advantage": "Advantage",
+  "EE.RollRequest.Disadvantage": "Disadvantage",
+  "EE.RollRequest.LockedByGm": "Set by the GM for this roll.",
+  "EE.RollRequest.HopeAvailable": "Experiences cost 1 Hope each — {hope} available.",
+  "EE.RollRequest.HopeSpend": "Spending {spent} of {hope} Hope.",
+
   "EE.SettingsList.GeneralHeading": "General",
   "EE.SettingsList.DaggerheartHeading": "Daggerheart",
 
@@ -99,6 +111,8 @@
   "EE.GeneralFeatures.Title": "General Features",
   "EE.GeneralFeatures.TokensLegend": "Tokens",
   "EE.GeneralFeatures.PortraitsLegend": "Portraits",
+  "EE.GeneralFeatures.RollRequestsLegend": "Roll Requests",
+  "EE.GeneralFeatures.QuickActionsMissing": "Daggerheart: Quick Actions isn't active, so there are no roll requests to change. Enable it to use these.",
   "EE.GeneralFeatures.Version": "Version",
 
   "EE.Automation.Title": "Daggerheart Automation",

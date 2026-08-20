@@ -94,6 +94,35 @@ export function registerSettings(): void {
     // No onChange: read at refresh time, so the next change picks it up.
   });
 
+  // World-scoped to match the other feature switches, even though the close
+  // itself is per-client DOM. On by default: Quick Actions already intends this,
+  // and its own listener is simply unreachable.
+  game.settings.register(MODULE_ID, SETTINGS.rollRequestClose, {
+    name: "EE.Settings.RollRequestClose.Name",
+    hint: "EE.Settings.RollRequestClose.Hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: true,
+    // No onChange: both hooks read the setting on every fire, so the next roll
+    // request picks it up without a reload.
+  });
+
+  // World-scoped: this decides which character a requested roll belongs to and
+  // what Hope it spends, which has to be one answer for the whole table.
+  game.settings.register(MODULE_ID, SETTINGS.rollRequestOptions, {
+    name: "EE.Settings.RollRequestOptions.Name",
+    hint: "EE.Settings.RollRequestOptions.Hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    // On by default: without it a requested roll cannot apply an Experience at
+    // all, and lands on the system's actor-less fallback for any player who has
+    // no assigned character.
+    default: true,
+    // No onChange: read at render time, so the next roll request picks it up.
+  });
+
   // World-scoped: whether players can reach their own tokens without the canvas
   // is a table-wide decision, made by the same GM who hid the tokens in the first
   // place. Off by default — it puts a panel on every player's screen.

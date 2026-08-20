@@ -72,6 +72,38 @@
     </div>
   </fieldset>
 
+  {{!-- Both switches act on Daggerheart: Quick Actions' Request Roll windows.
+       With that module inactive `refreshControls` greys them out and the warning
+       below says why — see GeneralFeaturesConfig. --}}
+  <fieldset>
+    <legend>{{localize "EE.GeneralFeatures.RollRequestsLegend"}}</legend>
+
+    {{#unless quickActionsActive}}
+      <p class="notes ee-status-warn">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        {{localize "EE.GeneralFeatures.QuickActionsMissing"}}
+      </p>
+    {{/unless}}
+
+    <div class="form-group">
+      <label for="ee-roll-request-close">{{localize "EE.Settings.RollRequestClose.Name"}}</label>
+      <div class="form-fields">
+        <input type="checkbox" id="ee-roll-request-close" name="rollRequestClose"
+               {{#if rollRequestClose}}checked{{/if}}>
+      </div>
+      <p class="hint">{{localize "EE.Settings.RollRequestClose.Hint"}}</p>
+    </div>
+
+    <div class="form-group">
+      <label for="ee-roll-request-options">{{localize "EE.Settings.RollRequestOptions.Name"}}</label>
+      <div class="form-fields">
+        <input type="checkbox" id="ee-roll-request-options" name="rollRequestOptions"
+               {{#if rollRequestOptions}}checked{{/if}}>
+      </div>
+      <p class="hint">{{localize "EE.Settings.RollRequestOptions.Hint"}}</p>
+    </div>
+  </fieldset>
+
   <p class="hint">{{localize "EE.GeneralFeatures.Version"}} {{version}}</p>
 
 </div>

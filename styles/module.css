@@ -412,3 +412,83 @@
 .ee-feature-prompt .ee-feature-offer-single {
   margin: 0;
 }
+
+/* --- Roll request controls -------------------------------------------------- */
+
+/* Advantage/Disadvantage and Experience chips, injected into Daggerheart: Quick
+ * Actions' cinematic prompt and its whispered roll-request chat card (see
+ * src/integrations/quickactions-roll-request.ts).
+ *
+ * Both hosts paint their own dark background — the prompt from the module's own
+ * stylesheet, the card from an inline background image with a black overlay — so
+ * the palette here is fixed rather than themed, unlike everything above. It has
+ * to read against those two backdrops and nothing else. */
+.ee-roll-request-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: center;
+  width: 100%;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.ee-roll-request-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: center;
+}
+
+.ee-roll-request-chip {
+  width: auto;
+  flex: 0 0 auto;
+  padding: 0.15rem 0.6rem;
+  line-height: 1.5;
+  font-size: var(--font-size-13, 0.8125rem);
+  border: 1px solid rgb(255 255 255 / 35%);
+  border-radius: 999px;
+  background: rgb(0 0 0 / 45%);
+  color: #f0f0f0;
+  cursor: pointer;
+}
+
+.ee-roll-request-chip:hover:not(:disabled) {
+  border-color: var(--color-border-highlight, #ff6400);
+  background: rgb(255 255 255 / 12%);
+}
+
+/* Selected reads as filled rather than merely outlined — at chip size a border
+ * colour change alone is easy to miss on a busy backdrop. */
+.ee-roll-request-chip.selected {
+  border-color: #c9a060;
+  background: rgb(201 160 96 / 35%);
+  color: #fff;
+  font-weight: bold;
+}
+
+.ee-roll-request-chip:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+/* The GM's own advantage call. Still legible while disabled — it is telling the
+ * player something, not just refusing them — so it opts out of the dimming above. */
+.ee-roll-request-chip.locked.selected {
+  opacity: 1;
+  border-style: dashed;
+}
+
+.ee-roll-request-cost {
+  margin: 0;
+  font-size: var(--font-size-12, 0.75rem);
+  color: rgb(255 255 255 / 70%);
+  text-align: center;
+}
+
+/* Once the roll has been made the choices stay visible but stop inviting a
+ * second look — the result is in chat, and this is now a record of what was
+ * spent. */
+.ee-roll-request-options.ee-roll-request-spent,
+.ee-roll-request-spent .ee-roll-request-options {
+  opacity: 0.55;
+}

@@ -175,6 +175,28 @@ export const SETTINGS = {
    */
   refreshRaisedPortraits: "refreshRaisedPortraits",
   /**
+   * Close Daggerheart: Quick Actions' cinematic roll prompt once the player has
+   * rolled. That module already means to — its own close listener just can't
+   * hear the click, because the system stops the event before it bubbles (see
+   * `integrations/quickactions-roll-request.ts`). World-scoped like the rest of
+   * the feature switches, and on by default: a prompt left over a result it was
+   * asking for is nobody's intended behaviour.
+   */
+  rollRequestClose: "rollRequestClose",
+  /**
+   * Offer Advantage/Disadvantage and Experiences on a GM's roll request, and
+   * roll it as the player's character rather than the no-actor fallback the
+   * system's enricher lands on. Applies to both the cinematic prompt and the
+   * whispered chat card.
+   *
+   * World-scoped: it changes what a requested roll *does* — which character it
+   * belongs to and what Hope it spends — which is a table-wide answer, not a
+   * per-client preference. On by default, for the same reason as
+   * {@link SETTINGS.voidHybridFormStressRevert}: without it a requested roll has
+   * no way to apply an Experience at all.
+   */
+  rollRequestOptions: "rollRequestOptions",
+  /**
    * Master switch for the Deck Limit — capping how many decks are in play at
    * once. World-scoped: it's a table-wide rule the GM sets, not a per-client
    * preference. Off by default, since it constrains something Daggerheart

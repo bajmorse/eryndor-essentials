@@ -21,6 +21,7 @@ import { registerReach } from "./daggerheart/reach.js";
 import { installRollPipeline } from "./daggerheart/roll-pipeline.js";
 import { registerHotbarPages } from "./hotbar/hotbar-pages.js";
 import { registerGinzzzuPortraits } from "./integrations/ginzzzu-portraits.js";
+import { registerQuickActionsRollRequest } from "./integrations/quickactions-roll-request.js";
 import { registerVoidHybridForm } from "./integrations/void-hybrid-form.js";
 import { registerVoidHybridFormStressEnd } from "./integrations/void-hybrid-form-stress.js";
 import { registerSessionLog } from "./session-log/session-log-events.js";
@@ -72,6 +73,7 @@ Hooks.once("init", async () => {
   registerVoidHybridForm();
   registerVoidHybridFormStressEnd();
   registerGinzzzuPortraits();
+  registerQuickActionsRollRequest();
   await foundry.applications.handlebars.loadTemplates(Object.values(TEMPLATES));
 });
 
