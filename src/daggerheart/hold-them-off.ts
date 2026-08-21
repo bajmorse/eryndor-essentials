@@ -57,20 +57,24 @@
  * the same reason the picker never shows an adversary's Difficulty, which is the
  * GM's to reveal.
  */
-import { FLAGS, LOG_PREFIX, MODULE_ID, SETTINGS } from "../constants.js";
+import { LOG_PREFIX, MODULE_ID, SETTINGS } from "../constants.js";
 import { chooseUpTo, type PromptChoice } from "./feature-prompt.js";
-import { chargeCosts } from "./feature-registry.js";
+import { chargeCosts, findGrantingItem, type FeatureMatch } from "./feature-registry.js";
 import { tokenForActor, withinActionRange } from "./range-bands.js";
 import { registerRollWindow, rollTypeOf, showDiceEarly } from "./roll-pipeline.js";
-
-/** The SRD Item this comes from — matched ahead of the printed name. */
-const HOLD_THEM_OFF_SOURCE = "Compendium.daggerheart.classes.Item.2Cyb9ZeuAesf5Sb3";
-
-/** Printed name, as the fallback match for a hand-copied feature. */
-const HOLD_THEM_OFF_NAME = "Hold Them Off";
+import { rollingCharacter, weaponAttackOf, type WeaponAttack } from "./attack-action.js";
 
 /** Registry id, for the `flags.eryndor-essentials.featureId` escape hatch. */
 const FEATURE_ID = "holdThemOff";
+
+/** How the granting Item is recognised — flag, then compendium, then name. */
+const MATCH: FeatureMatch = {
+  compendiumSources: ["Compendium.daggerheart.classes.Item.2Cyb9ZeuAesf5Sb3"],
+  names: ["Hold Them Off"],
+};
+
+/** Prefix for this feature's console lines. */
+const LABEL = "Hold Them Off";
 
 /** `CONFIG.DH.GENERAL.rollTypes.attack.id` — what a weapon attack rolls. */
 const ATTACK = "attack";
@@ -85,99 +89,10 @@ const HOPE_COST = 3;
 /** "two additional adversaries" — the ceiling, not a quota. */
 const EXTRA_TARGETS = 2;
 
-/** One resolved Hold Them Off attack: who swung, with what, using which action. */
-interface WeaponAttack {
-  actor: AnyObject;
-  weapon: AnyObject;
-  /** The printed range of the attack, as an id from `CONFIG.DH.GENERAL.range`. */
-  range: string;
-}
-
 /** One adversary the feature could reach, with the distance that qualified it. */
 interface Candidate {
   token: Token;
   distance: number;
-}
-
-/** Does this actor hold the Hold Them Off feature? Flag, compendium, then name. */
-function holdsFeature(actor: AnyObject): AnyObject | null {
-  for (const item of actor["items"] ?? []) {
-    if (String(item?.["type"] ?? "") !== "feature") continue;
-
-    // The homebrew escape hatch the feature registry uses, honoured here for the
-    // same reason: a table that rewrote the card should still get the automation.
-    const flagged = item?.["flags"]?.[MODULE_ID]?.[FLAGS.featureId];
-    if (typeof flagged === "string" && flagged.trim() === FEATURE_ID) return item;
-
-    if (String(item?.["_stats"]?.["compendiumSource"] ?? "") === HOLD_THEM_OFF_SOURCE) return item;
-
-    if (String(item?.["name"] ?? "").trim().toLowerCase() === HOLD_THEM_OFF_NAME.toLowerCase()) {
-      return item;
-    }
-  }
-
-  return null;
-}
-
-/**
- * The character whose Hold Them Off this roll could use, or null.
- *
- * Silent on every path, deliberately: this window sees every attack roll in the
- * world — every adversary's, every other character's — and "not this actor's
- * business" is the overwhelmingly common answer, not a diagnosis. Everything
- * *after* this gate says why it declined, because from there on the roll is one a
- * player might reasonably have expected a prompt for.
- */
-function holderOf(config: AnyObject): AnyObject | null {
-  // Guarded before the lookup: an adversary's attack and a bare sheet roll both
-  // reach this window, and `fromUuidSync` is not obliged to be kind about "".
-  const actorUuid = String(config["source"]?.["actor"] ?? "");
-  if (!actorUuid) return null;
-
-  const actor = fromUuidSync(actorUuid) as AnyObject | null;
-  if (!actor || actor["type"] !== "character") return null;
-
-  return holdsFeature(actor) ? actor : null;
-}
-
-/**
- * Resolve the roll config back to the weapon attack that produced it, or null.
- *
- * `config.source` carries the *ids* of the item and action. The action is looked
- * up the way `DHRoll.toMessage` looks it up — the item's `system.actions`
- * collection first, then its `system.attack`, which is where a weapon's built-in
- * attack lives and is not a member of that collection.
- *
- * The range is read off the *action*, which is the derived value, so `reach.ts`
- * having promoted a Melee weapon to Very Close is already accounted for. It falls
- * back to the weapon's own attack range only if the action carries none.
- */
-function weaponAttackOf(actor: AnyObject, config: AnyObject): WeaponAttack | null {
-  const source = config["source"];
-
-  // "with a weapon", exactly: an unarmed strike lives on `actor.system.attack`
-  // rather than on an Item, so `source.item` is the *actor's* id and this finds
-  // nothing — which is the right answer, and not worth a line every swing.
-  const weapon = actor["items"]?.get?.(String(source?.["item"] ?? "")) as AnyObject | undefined;
-  if (!weapon || String(weapon["type"] ?? "") !== "weapon") return null;
-
-  const actionId = String(source?.["action"] ?? "");
-  const attack = weapon["system"]?.["attack"] as AnyObject | undefined;
-  const action =
-    (weapon["system"]?.["actions"]?.get?.(actionId) as AnyObject | undefined) ??
-    (String(attack?.["id"] ?? attack?.["_id"] ?? "") === actionId ? attack : undefined);
-  if (!action || String(action["type"] ?? "") !== ATTACK) {
-    console.debug(`${LOG_PREFIX} Hold Them Off: ${weapon["name"]} action ${actionId} is not an attack.`);
-    return null;
-  }
-
-  const range = String(action["range"] ?? attack?.["range"] ?? "");
-  if (!range) {
-    console.debug(`${LOG_PREFIX} Hold Them Off: ${weapon["name"]} prints no range; standing down.`);
-    return null;
-  }
-
-  return { actor, weapon, range };
 }
 
 /** How much Hope the character is holding. */
@@ -252,7 +167,7 @@ function candidatesFor(attacker: Token, config: AnyObject, range: string): Candi
     // question someone is about to ask, and the answer is almost always a number.
     if (!Number.isFinite(distance) || withinActionRange(distance, range) !== true) {
       console.debug(
-        `${LOG_PREFIX} Hold Them Off: ${token.document.name} at ${distance}, outside ${range}.`,
+        `${LOG_PREFIX} ${LABEL}: ${token.document.name} at ${distance}, outside ${range}.`,
       );
       continue;
     }
@@ -349,16 +264,16 @@ async function runHoldThemOffWindow(roll: AnyObject, config: AnyObject): Promise
   // Silent gate: most attack rolls in the world are nothing to do with this.
   // Past here every exit says why, because past here a player might reasonably
   // have expected the prompt and needs to be able to find out.
-  const holder = holderOf(config);
-  if (!holder) return;
+  const holder = rollingCharacter(config);
+  if (!holder || !findGrantingItem(holder, FEATURE_ID, MATCH)) return;
 
-  const attack = weaponAttackOf(holder, config);
+  const attack = weaponAttackOf(holder, config, LABEL);
   if (!attack) return;
 
   // Only populated when the attack had targets or a set difficulty. Without it
   // nothing here knows whether it succeeded — see the header note.
   if (config["roll"]?.["success"] !== true) {
-    console.debug(`${LOG_PREFIX} Hold Them Off: attack did not succeed (or had no target).`);
+    console.debug(`${LOG_PREFIX} ${LABEL}: attack did not succeed (or had no target).`);
     return;
   }
 
@@ -367,20 +282,20 @@ async function runHoldThemOffWindow(roll: AnyObject, config: AnyObject): Promise
   // attacks just as often as one above it, and one per swing would be noise.
   if (hopeOn(attack.actor) < HOPE_COST) {
     console.debug(
-      `${LOG_PREFIX} Hold Them Off: ${hopeOn(attack.actor)} Hope, needs ${HOPE_COST}; nothing offered.`,
+      `${LOG_PREFIX} ${LABEL}: ${hopeOn(attack.actor)} Hope, needs ${HOPE_COST}; nothing offered.`,
     );
     return;
   }
 
   const attacker = tokenForActor(attack.actor);
   if (!canvas.ready || !attacker) {
-    console.debug(`${LOG_PREFIX} Hold Them Off: attacker has no token; cannot measure range.`);
+    console.debug(`${LOG_PREFIX} ${LABEL}: attacker has no token; cannot measure range.`);
     return;
   }
 
   const candidates = candidatesFor(attacker, config, attack.range);
   if (candidates.length === 0) {
-    console.debug(`${LOG_PREFIX} Hold Them Off: no further adversaries within ${attack.range}.`);
+    console.debug(`${LOG_PREFIX} ${LABEL}: no further adversaries within ${attack.range}.`);
     return;
   }
 
@@ -413,7 +328,7 @@ async function runHoldThemOffWindow(roll: AnyObject, config: AnyObject): Promise
     if (token) appendTarget(config, roll, token);
   }
 
-  console.debug(`${LOG_PREFIX} Hold Them Off: ${picked.length} more caught by the same roll.`);
+  console.debug(`${LOG_PREFIX} ${LABEL}: ${picked.length} more caught by the same roll.`);
 }
 
 /**

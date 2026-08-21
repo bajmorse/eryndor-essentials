@@ -721,11 +721,180 @@ loads).
     answer; this asks "which of these people", where nothing is a default. Its
     `waitWithTimeout` now takes an optional `onRender`, wired on the same `render`
     callback the timeout already uses.
+  - The "is this actor's business" gate and the weapon-attack resolution both
+    moved to `attack-action.ts` when Ranger's Focus needed them too; the local
+    copies are gone. See that entry.
   - `resourceUpdatesFor`'s partner **`chargeCosts(actor, config, costs)`** moved
     into `feature-registry.ts` out of `blood-spike.ts`, which now calls it: fold
     into `config.resourceUpdates` when the roller is the payer, fall back to a
     direct `modifyResource` when no map exists. A cost that falls on someone *else*
     still goes direct — see `adversary-attack.ts`.
+- **Ranger's Focus** (`src/daggerheart/rangers-focus.ts`) — the Ranger's (SRD)
+  "Spend a Hope and make an attack against a target. On a success … temporarily
+  make the attack's target your Focus", plus its three benefits.
+  `Compendium.daggerheart.classes.Item.ncLx2P8BOUtrAD38`, a `feature` Item whose
+  one action ("Spend Hope") charges the Hope and applies a changeless marker
+  ActiveEffect to whatever is targeted — regardless of any attack, and regardless
+  of whether one succeeded. World setting `rangersFocusTracking`, **on** by
+  default, under **Classes → Ranger**. Shares the `attack` roll window with Hold
+  Them Off and is registered **before** it.
+  - **The ability drives the attack; it does not watch for one.** Press the card
+    → the system charges the Hope → we ask which equipped weapon
+    (`system.primaryWeapon` / `secondaryWeapon`, the same pair `crimson-rite.ts`
+    reads) → that weapon's `system.attack.use(…)` is called **with nothing
+    targeted** → `daggerheart-target-helper`'s guard picks the target within that
+    weapon's range → ordinary roll, damage, and on a hit the Focus is set with no
+    prompt at all. Weapon before target is not cosmetic: the range to filter
+    candidates by does not exist until the weapon is chosen.
+    - **The marker travels on the `event`, not in `configOptions`.** The Target
+      Helper's guard cancels the attack and replays it as
+      `action.use(config.event ?? null)` — it cannot carry `configOptions`,
+      which the hook never exposed to it. A marker in the options survives the
+      ordinary path and vanishes on the one that matters, silently. `{}` as an
+      event is the system's own convention (its `useAttack` macro helper), so an
+      object with one extra property is well within what the field expects.
+    - **`patchCardTargeting` blanks the card action's `target.type` for the
+      duration of one `use()`.** The SRD action declares `target.type: "any"`,
+      which makes the *button* a targeted action — so the player picks someone
+      before the weapon is known, with no range to filter by, and is asked again
+      for the attack. It cannot be fixed from a hook: `config.hasTarget` is set
+      inside `TargetField.prepareConfig`, which runs **before**
+      `daggerheart.preUseAction` fires, and which of the two modules' listeners
+      goes first is module load order (both register at `init`). So the flag has
+      to be gone before the hook exists. Restored in a `finally`; nothing is
+      written to the card.
+    - **Two earlier shapes were wrong. Do not return to either.** (1) *Asking on
+      every attack* — the card left alone, every single-target attack asking "is
+      this a Ranger's Focus attack?" before the dice were revealed. Faithful to
+      when the rule says the choice is made, and unusable: a ranger attacks
+      constantly and almost none of those attacks are this one. The seam does
+      make it possible (at `DHRoll.buildPost` the dice are evaluated but unseen,
+      since DSN animates off the chat message and there is no message yet), which
+      is what made it tempting — frequency beat fidelity. (2) *Targeting before
+      the weapon*, which is what the `target.type` patch above exists to stop.
+    - The only prompt left on an ordinary attack is the reroll, and its door is
+      narrow by construction: the attack must have **failed**, against the
+      creature that already **is** the Focus. That one does call `showDiceEarly`
+      first — "when you fail an attack" is knowable only after the failure.
+  - **`gm-effects.ts` is the general fix for "a player cannot mark an
+    adversary"**, and the focused creature's own label is its first user. One-way
+    socket request, handled by `isWriter`'s single GM. **The payload is a
+    description of a mark, never effect data** — the GM's client builds the
+    ActiveEffect from a fixed table keyed on `MarkKind`, so a malformed or
+    hostile message can at worst place a labelled, changeless marker, never
+    `changes`, `statuses`, a duration or a script. Same principle as
+    `feature-ask.ts`: the wire carries intent, the receiver decides what it
+    means. Applied directly, without the socket, when this client already owns
+    the subject.
+  - **The Focus lives on the ranger, not on the target**, as an ActiveEffect
+    carrying `flags.eryndor-essentials.rangersFocus`. The SRD marks the target
+    and that is the one thing that cannot be automated: an attack resolves on the
+    *attacking player's* client, and a player may not create an ActiveEffect on
+    an adversary. Everything else falls out of it — one Focus per ranger is one
+    such effect, re-focusing is delete-then-create, and "until this feature ends"
+    is the player deleting an effect on their own sheet. The GM is told who it is
+    by a chat line, since the record is on the one sheet they are not looking at.
+  - **`Actor#modifyResource` relays to the GM on its own** (it routes through the
+    system's `emitGMUpdate`/`GMUpdateEvent.UpdateDocument`), which is why marking
+    the Focus's Stress works from a player's client and needs no socket protocol
+    here. `ActiveEffect.implementation.create` does **not** — the system's
+    `EffectsField.applyEffect` calls it directly, so its own "players apply
+    effects" automation *cannot work* against an adversary. Do not model a
+    target-side effect on it. **This is observed, not theoretical**: the SRD
+    card's own button raised `User Niamh lacks permission to create ActiveEffect
+    […] in parent ActorDelta […]` at the table. Core's
+    `BaseActiveEffect.#canCreate` is `doc.parent.testUserPermission(user,
+    "OWNER")`, and ownership resolves ActorDelta → TokenDocument → the base
+    Actor, so a *linked* adversary refuses it identically — the delta in the
+    message is incidental. It succeeds for a GM, which is how it went unnoticed.
+  - **The card's own action is taken over entirely** — `registerFocusCard`, two
+    hooks, and *which* hook matters because the cost lands between them.
+    `daggerheart.preUseAction` runs **before** `CostField`, so it is where every
+    refusal goes (no target, several targets, nothing equipped): returning
+    `false` aborts `use()` with the Hope unspent. It also clears
+    `config.hasEffect` — the flag `EffectsField.execute` returns early on, and
+    the config object is the one `executeWorkflow` is about to run — so the
+    doomed effect write never happens. Suppressed for the GM too, so the button
+    does one thing rather than two depending on who pressed it.
+    `daggerheart.postUseAction` runs **after** the flush, so that is where the
+    weapon is chosen and the attack made; a player who backs out of the weapon
+    dialog there is told the Hope is gone, the same way `crimson-rite.ts` reports
+    a spent Hit Point. Both hooks are synchronous, and `false` from either
+    cancels the action — load-bearing in the first, a hazard in the second, where
+    every path (including the `catch`) must return `undefined`.
+  - **The Stress wraps `DamageField.applyDamage`**, which is the exact moment
+    damage lands and is shared by the workflow (order 75) and the chat card's
+    *Apply* button. Two cheaper seams were rejected and should stay rejected:
+    declaring a `stress` resource on the damage applies it to **every** hit
+    target (`applyDamage` clones the damage per target but not its resources, so
+    a Hold Them Off swing would mark all three), and the damage *roll's* seam is
+    before anything is applied, so a table with apply-automation off would mark
+    Stress for damage nobody took. The wrapper asks the system's own
+    `getApplyAutomation()` rather than re-deriving the rule. Patched at **setup**,
+    not `init` — the class comes off `game.system.api`, which the system only
+    fills inside its own `init`, and `Action#defineWorkflow` binds `applyDamage`
+    lazily on first *use*, so setup is early enough.
+  - **Rerolling a Duality roll needs the dice presets carried over by hand.**
+    `DualityRoll.buildPost` stamps them onto `roll.dice[0..2]` *before* calling
+    `super.buildPost` (where the window runs), so a roll rebuilt with
+    `createRollInstance` has never been through that and would animate in default
+    colours. Copying `dice[i].options` across is what the system's own
+    `DualityRoll#reroll` does. Its `liveRoll: true` path is deliberately not used:
+    it also runs `updateResourcesForDualityReroll`, which is only correct *after*
+    the Hope/Fear update has been applied, and at this seam it has not been.
+    Known edge, documented in the file: `handleTriggers` afterwards is handed
+    `DualityRoll.buildPost`'s own local `roll`, still the original — what triggers
+    are *gated* on (`config.roll.result.duality`) is correct, but a trigger that
+    inspects the Roll object sees the discarded one.
+  - **"You know precisely what direction they are in" is deliberately not
+    automated.** It grants no number; the honest implementation is the GM
+    answering, and the effect's description carries the wording so it is on the
+    sheet. Don't "fix" this with a marker or a compass.
+  - **"An attack", not "an attack with a weapon"** — the wording differs from
+    Hold Them Off's and the code has to. An unarmed strike and a Spellcast attack
+    both count, so this window matches roll types `attack` **and** `spellcast`
+    (`DHAttackAction.getRollType` returns the second whenever the action's parent
+    is not a weapon) and then confirms the *action* is an attack, since a
+    `spellcast` roll on its own does not say so.
+  - `attack-action.ts` was extracted for this: `rollingCharacter` (the silent
+    "whose roll is this" gate) and the action resolution were Hold Them Off's,
+    and two copies of the seam-reading would be two things to keep in step with
+    the system. It exposes both readings — `attackActionOf` (any attack, and the
+    one place that knows an actor-level attack has no Item behind it) and
+    `weaponAttackOf` on top of it (Hold Them Off's, which also insists on a
+    printed range to measure). `feature-registry.ts`'s `findGrantingItem` is now
+    exported for the same reason — a feature with a window of its own still
+    matches its Item flag-then-compendium-then-name.
+  - `feature-prompt.ts` also grew **`chooseOne`**, which `crimson-rite.ts`'s
+    weapon picker was folded onto — the same question about the same list, and
+    two copies would be two things to restyle. It is the only prompt there with
+    **no timeout**, deliberately: the others are raised from inside
+    `DHRoll.buildPost` with the table's chat card and resource updates waiting on
+    the answer, while this one runs after an action has resolved, so an
+    unanswered dialog costs nobody but the player.
+    - Two forms. Plain buttons, or — when an option carries `img`/`tag`/`stat` —
+      **rows**: artwork left, name over its tag, figure right. The row form is
+      shaped after `daggerheart-target-helper`'s target picker on purpose, since
+      the two appear back to back in one flow (pick a weapon, then pick who to
+      hit with it) and two consecutive choices that look unrelated read as two
+      unrelated features. Same measurements, **its own classes** — that module's
+      stylesheet isn't loaded when it's off, and these rows have to survive that.
+    - The rows are `<button>`s in the dialog's *content*, not DialogV2 buttons,
+      because a DialogV2 button takes a plain label and these need structure. So
+      the answer can't be the dialog's own result: a click records the choice and
+      closes, and the recorded value is returned. One delegated listener reading
+      `data-ee-choice` via `closest()` — the click routinely lands on the
+      artwork, not the button.
+    - `attack-action.ts`'s `weaponOption(id, weapon)` builds the row for both
+      callers; `id` is the caller's, because Crimson Rite answers in slots and
+      Ranger's Focus in Item ids. The damage figure is
+      `action.getDamageFormula()` — the same call the system's own `damageFormula`
+      Handlebars helper makes for the weapon tooltip, already resolved against the
+      actor's roll data, so what the player reads is what will be rolled.
+  - `feature-prompt.ts` grew **`confirmChoice`**, a plain yes/no in the *window's*
+    own words. Not `chooseOffers`'s single-offer branch, which looks identical and
+    is asking a different question ("do you want to use this feature you hold",
+    with the shared button strings and the card named in the body).
 - **Deck Limit** (`src/daggerheart/deck-limit.ts`, settings only so far) — models
   the table's card pool as physical decks: a card in one character's hands isn't
   available to anyone else. World settings `deckLimitEnabled` (off by default)
@@ -952,7 +1121,8 @@ styles/ templates/ lang/ packs/   served from the repo root as-is
     The Daggerheart Automation window has a "General" tab plus one tab per kind of
     character content — Ancestries, Communities, Classes, Domains — and a rule is
     filed under the card that prints it (Fearless under Infernis; Blood Maledict,
-    Crimson Rite and Hybrid Form under Blood Hunter; Hold Them Off under Ranger;
+    Crimson Rite and Hybrid Form under Blood Hunter; Hold Them Off and Ranger's
+    Focus under Ranger;
     Blood Spike under the Blood domain, I See It Coming under Bone). All four
     content tabs render
     the *same* template from data in `src/apps/automation-catalog.ts`, so adding a

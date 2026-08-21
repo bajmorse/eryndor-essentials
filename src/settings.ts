@@ -279,6 +279,19 @@ export function registerSettings(): void {
     default: true,
   });
 
+  // World-scoped for the same reason as the one above, and with one extra: the
+  // Stress this marks is written to an adversary through the system's GM relay,
+  // so the answer has to be the same on the client that asks and the one that
+  // applies it.
+  game.settings.register(MODULE_ID, SETTINGS.rangersFocusTracking, {
+    name: "EE.Settings.RangersFocusTracking.Name",
+    hint: "EE.Settings.RangersFocusTracking.Hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: true,
+  });
+
   // World-scoped: only a GM can write actor documents, and the artwork this
   // changes is shared by the whole table.
   game.settings.register(MODULE_ID, SETTINGS.voidHybridFormPortrait, {

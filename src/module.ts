@@ -18,6 +18,8 @@ import { registerFearless } from "./daggerheart/fearless.js";
 import { registerFeatureAsk } from "./daggerheart/feature-ask.js";
 import { registerHoldThemOff } from "./daggerheart/hold-them-off.js";
 import { registerISeeItComing } from "./daggerheart/i-see-it-coming.js";
+import { registerGmEffects } from "./daggerheart/gm-effects.js";
+import { registerRangersFocus } from "./daggerheart/rangers-focus.js";
 import { registerReach } from "./daggerheart/reach.js";
 import { installRollPipeline } from "./daggerheart/roll-pipeline.js";
 import { registerHotbarPages } from "./hotbar/hotbar-pages.js";
@@ -55,6 +57,10 @@ Hooks.once("init", async () => {
   // come last. All of it before the first roll, and `init` is the earliest point
   // the system's roll classes are reachable.
   registerFeatureAsk();
+  // The other half of the socket channel: marking somebody else's actor, which a
+  // player has no permission to do themselves. Listener only — the senders are
+  // features, and it does nothing on a client that isn't the writing GM.
+  registerGmEffects();
   registerDualityOutcome();
   registerAdversaryAttack();
   // Its own window rather than a registry feature — one card's rule, not a
@@ -65,6 +71,11 @@ Hooks.once("init", async () => {
   registerFearless();
   registerBloodMaledict();
   registerISeeItComing();
+  // Two Ranger features that fire on the same weapon attack, and the order
+  // between them is deliberate: Ranger's Focus may *replace* the roll (its reroll)
+  // and asks its first question before the dice are revealed, so it has to settle
+  // before Hold Them Off shows them and offers extra adversaries.
+  registerRangersFocus();
   // Its own window too — one class feature's rule, and one that adds targets to a
   // roll rather than reacting to one. Last of the windows, which costs nothing: a
   // weapon attack is neither a spellcast nor an adversary's roll, so no other

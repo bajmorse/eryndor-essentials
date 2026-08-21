@@ -5,13 +5,22 @@
  * question is half the reason the registry exists (see `feature-registry.ts`):
  * three Fear-reactive features must produce one dialog, not three.
  *
- * Two shapes, because a single offer does not deserve a checklist:
+ * {@link chooseOffers} has two shapes, because a single offer does not deserve a
+ * checklist:
  * - one offer  — a plain two-button question, the common case at low levels.
  * - several    — a checkbox per offer, all pre-ticked, and one Apply.
  *
+ * Three more shapes belong to features that own their own question rather than
+ * asking it out of the registry: {@link chooseUpTo} ("which of these people?",
+ * nothing pre-ticked, a hard cap), {@link confirmChoice} ("yes or no?", in the
+ * asker's own words) and {@link chooseOne} ("which one?", a button each). All
+ * three are local — none crosses a socket.
+ *
  * Dismissing the dialog (Escape, the close button, the timeout) means "none",
- * never "all": every caller is mid-pipeline holding something back, so the safe
- * answer is always to let the unmodified outcome through.
+ * never "all": every caller *holding up a roll* is mid-pipeline holding something
+ * back, so the safe answer is always to let the unmodified outcome through.
+ * {@link chooseOne} is the exception in a second way — see its own note on why it
+ * has no timer at all.
  *
  * ## Why it takes plain data
  *
@@ -393,4 +402,212 @@ function limitSelection(root: HTMLElement, max: number): void {
 
   for (const box of boxes) box.addEventListener("change", sync);
   sync();
+}
+
+/** Everything needed to raise a {@link confirmChoice} prompt. */
+export interface ConfirmRequest {
+  title: string;
+  /** The situation as a sentence, including what saying yes will cost. */
+  intro: string;
+  /** The banner form of the same information, when the event fits it. */
+  headline?: PromptHeadline;
+  /** Localized confirm button — it should name the price, not just say "OK". */
+  confirmLabel: string;
+  /**
+   * Localized decline button. Required for the same reason as
+   * {@link ChoiceRequest.declineLabel}: the shared `EE.Features.PromptSkip`
+   * reads "leave the roll alone", which is only right for a feature that would
+   * have rewritten one. Word it as the counterpart of {@link confirmLabel}.
+   */
+  declineLabel: string;
+}
+
+/**
+ * Ask one yes/no question. Returns whether it was answered yes; dismissal, the
+ * close button and the timeout all mean no.
+ *
+ * ## Why this isn't {@link chooseOffers}'s single-offer case
+ *
+ * That branch looks identical on screen and is not: it is asking *"do you want
+ * to use this feature you hold"*, so it labels its buttons from the shared
+ * strings and describes the granting card in the body. This one is a window
+ * asking its own question in its own words — "spend a Hope to focus on her?",
+ * "end the feature to reroll?" — where the buttons are half the sentence and the
+ * card's name is already in the title. Passing custom labels into `chooseOffers`
+ * would have meant a `PromptOffer` with nothing in it but labels.
+ */
+export async function confirmChoice(request: ConfirmRequest): Promise<boolean> {
+  const { title, intro, headline, confirmLabel, declineLabel } = request;
+
+  const answer = await waitWithTimeout({
+    classes: ["ee-feature-prompt"],
+    window: { title },
+    content: headline
+      ? `${renderHeadline(headline)}<p>${escapeHtml(intro)}</p>`
+      : `<p>${escapeHtml(intro)}</p>`,
+    buttons: [
+      { action: "confirm", label: confirmLabel, default: true },
+      { action: "skip", label: declineLabel },
+    ],
+  });
+
+  return answer === "confirm";
+}
+
+/**
+ * One option in a {@link chooseOne} prompt.
+ *
+ * Supplying any of {@link img}, {@link tag} or {@link stat} switches the whole
+ * prompt from plain buttons to **rows**: artwork on the left, the name with its
+ * tag beneath, the figure on the right. The shape deliberately mirrors
+ * `daggerheart-target-helper`'s target picker, because at this table the two
+ * appear one after the other in the same flow — pick a weapon, then pick who to
+ * hit with it — and two different-looking lists for two consecutive choices
+ * reads as two unrelated features.
+ */
+export interface PromptOption {
+  /** What the answer identifies this option by. */
+  id: string;
+  /** Localized button text, or the row's name. */
+  label: string;
+  /** Artwork for a row-styled option. */
+  img?: string;
+  /** Short localized chip under the name — a range band, and so on. */
+  tag?: string;
+  /** The figure on the right: a small caption over a value. */
+  stat?: { label: string; value: string };
+}
+
+/** Everything needed to raise a {@link chooseOne} prompt. */
+export interface OneOfRequest {
+  title: string;
+  /** The question as a sentence. */
+  intro: string;
+  /** One button each, in the order they should read. */
+  options: PromptOption[];
+}
+
+/**
+ * Ask which *one* of `request.options` to use. Returns the id, or null for a
+ * dialog that was dismissed.
+ *
+ * ## Why this one has no timeout
+ *
+ * Unlike every other prompt in this file, nothing is being held back while it is
+ * open. The others are raised from inside `DHRoll.buildPost`, where the chat card
+ * and the resource updates for the whole table are waiting on the answer, so an
+ * unattended client cannot be allowed to stall play. This one is raised *after*
+ * an action has resolved — the cost is paid, the card has posted — so the only
+ * thing an unanswered dialog costs is that player's own follow-through, and
+ * timing them out at 30 seconds would take a choice away for no one's benefit.
+ */
+export async function chooseOne(request: OneOfRequest): Promise<string | null> {
+  const { title, intro, options } = request;
+  if (options.length === 0) return null;
+
+  const { DialogV2 } = foundry.applications.api;
+
+  // Rows whenever an option carries anything to show; plain buttons otherwise.
+  if (options.some((option) => option.img || option.tag || option.stat)) {
+    return chooseRow(request);
+  }
+
+  const answer = await DialogV2.wait({
+    classes: ["ee-feature-prompt"],
+    window: { title },
+    content: `<p>${escapeHtml(intro)}</p>`,
+    buttons: options.map((option, index) => ({
+      action: option.id,
+      label: option.label,
+      default: index === 0,
+    })),
+    rejectClose: false,
+  }).catch(() => null);
+
+  return options.some((option) => option.id === answer) ? String(answer) : null;
+}
+
+/** One row: artwork, name over its tag, and the figure on the right. */
+function renderRow(option: PromptOption): string {
+  const tag = option.tag
+    ? `<span class="ee-feature-row-tag">${escapeHtml(option.tag)}</span>`
+    : "";
+
+  const stat = option.stat
+    ? `<span class="ee-feature-row-stat">
+        <span class="ee-feature-row-stat-label">${escapeHtml(option.stat.label)}</span>
+        <span class="ee-feature-row-stat-value">${escapeHtml(option.stat.value)}</span>
+      </span>`
+    : "";
+
+  return `<button type="button" class="ee-feature-row" data-ee-choice="${escapeHtml(option.id)}">
+    <img class="ee-feature-row-art" src="${escapeHtml(
+      option.img || PLACEHOLDER_PORTRAIT,
+    )}" alt="" draggable="false">
+    <span class="ee-feature-row-label">
+      <span class="ee-feature-row-name">${escapeHtml(option.label)}</span>
+      ${tag}
+    </span>
+    ${stat}
+  </button>`;
+}
+
+/**
+ * The row-styled form of {@link chooseOne}.
+ *
+ * The rows are `<button>`s in the dialog's *content* rather than DialogV2
+ * buttons, because a DialogV2 button takes a plain label and this needs
+ * structure inside each one. That means the answer cannot come back as the
+ * dialog's own result: a row click records the choice and closes the window,
+ * which resolves `DialogV2.wait` with the dismissal value, and the recorded
+ * choice is what gets returned. Dismissing without picking leaves it null, which
+ * is the same "backed out" answer the plain form gives.
+ *
+ * A Cancel button remains, and is the only DialogV2 button: a dialog with no
+ * buttons at all is not a shape DialogV2 supports, and more importantly the
+ * player needs somewhere obvious to say no.
+ */
+async function chooseRow(request: OneOfRequest): Promise<string | null> {
+  const { title, intro, options } = request;
+  const { DialogV2 } = foundry.applications.api;
+
+  let picked: string | null = null;
+
+  await DialogV2.wait({
+    classes: ["ee-feature-prompt"],
+    window: { title },
+    content: `<p>${escapeHtml(intro)}</p><div class="ee-feature-rows">${options
+      .map(renderRow)
+      .join("")}</div>`,
+    buttons: [{ action: "cancel", label: game.i18n.localize("EE.Features.PromptCancel") }],
+    rejectClose: false,
+    render: (_event: Event, instance: AnyObject) => {
+      try {
+        const root = instance?.["element"] as HTMLElement | undefined;
+        if (!root) return;
+
+        // One delegated listener on the dialog rather than one per row, reading
+        // a `data-*` attribute through `closest()` — the house pattern. Core
+        // happens to set `button > * { pointer-events: none }`, so the target is
+        // already the row, but `closest()` costs nothing and doesn't depend on
+        // that staying true.
+        root.addEventListener("click", (event: Event) => {
+          const row = (event.target as HTMLElement | null)?.closest?.("[data-ee-choice]");
+          if (!row) return;
+
+          const id = row.getAttribute("data-ee-choice");
+          // Re-checked against the list this function rendered a moment ago
+          // rather than trusted from the DOM.
+          if (!options.some((option) => option.id === id)) return;
+
+          picked = id;
+          void instance["close"]?.();
+        });
+      } catch (error) {
+        console.warn(`${LOG_PREFIX} Feature prompt: could not wire up the choices.`, error);
+      }
+    },
+  }).catch(() => null);
+
+  return picked;
 }

@@ -72,6 +72,8 @@
  */
 import { LOG_PREFIX, MODULE_ID, SETTINGS, FLAGS } from "../constants.js";
 import { isWriter } from "../utils/is-writer.js";
+import { weaponOption } from "./attack-action.js";
+import { chooseOne } from "./feature-prompt.js";
 
 /** The Void Item this comes from — matched ahead of the printed name. */
 const CRIMSON_RITE_SOURCE = "Compendium.the-void-unofficial.classes.Item.otb0ThXWuqQzzWho";
@@ -232,23 +234,21 @@ async function silenceManualTierEffects(item: AnyObject): Promise<void> {
  * Ask which weapon to enchant. Only ever called with two of them; one is applied
  * without asking, and none is refused earlier.
  *
- * No timeout, unlike `feature-prompt.ts`: nothing is being held back here. The
- * Hit Point has been spent and the chat card has posted, so an unanswered dialog
- * costs the table nothing but this player's own rite.
+ * `chooseOne` rather than a dialog of its own: Ranger's Focus asks the same
+ * question of the same list, and two copies would be two things to restyle. It
+ * is also the one prompt shape in `feature-prompt.ts` with no timeout, which is
+ * exactly right here — nothing is being held back, the Hit Point is spent and the
+ * chat card has posted, so an unanswered dialog costs the table nothing but this
+ * player's own rite.
  */
 async function chooseWeapon(weapons: ActiveWeapon[]): Promise<ActiveWeapon | null> {
-  const { DialogV2 } = foundry.applications.api;
-
-  const answer = await DialogV2.wait({
-    window: { title: game.i18n.localize("EE.Features.CrimsonRite.ChooseTitle") },
-    content: `<p>${game.i18n.localize("EE.Features.CrimsonRite.ChooseIntro")}</p>`,
-    buttons: weapons.map(({ slot, weapon }, index) => ({
-      action: slot,
-      label: String(weapon["name"] ?? slot),
-      default: index === 0,
-    })),
-    rejectClose: false,
-  }).catch(() => null);
+  const answer = await chooseOne({
+    title: game.i18n.localize("EE.Features.CrimsonRite.ChooseTitle"),
+    intro: game.i18n.localize("EE.Features.CrimsonRite.ChooseIntro"),
+    // Answered in *slots*, since that is what the rite is anchored to, but shown
+    // exactly as Ranger's Focus shows the same two weapons.
+    options: weapons.map(({ slot, weapon }) => weaponOption(slot, weapon)),
+  });
 
   return weapons.find(({ slot }) => slot === answer) ?? null;
 }

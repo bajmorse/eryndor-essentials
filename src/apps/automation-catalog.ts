@@ -171,6 +171,11 @@ const CLASSES: Catalog = {
               name: "EE.Settings.HoldThemOffExtraTargets.Name",
               hint: "EE.Settings.HoldThemOffExtraTargets.Hint",
             },
+            {
+              key: SETTINGS.rangersFocusTracking,
+              name: "EE.Settings.RangersFocusTracking.Name",
+              hint: "EE.Settings.RangersFocusTracking.Hint",
+            },
           ],
         },
       ],

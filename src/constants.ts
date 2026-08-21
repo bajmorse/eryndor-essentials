@@ -181,6 +181,20 @@ export const SETTINGS = {
    */
   holdThemOffExtraTargets: "holdThemOffExtraTargets",
   /**
+   * Master switch for automating **Ranger's Focus** (Ranger): the card's button
+   * asks which equipped weapon to attack with and makes that attack, marks the
+   * target as the ranger's Focus on a success, marks the Focus a Stress whenever
+   * the ranger damages it, and offers to end the feature for a reroll when an
+   * attack on the Focus fails. See `daggerheart/rangers-focus.ts`.
+   *
+   * World-scoped and **on** by default, like the rest. Note this one *owns* the
+   * card's own action rather than sitting beside it — the system leaves that
+   * button broken for players (it tries to write an ActiveEffect onto an
+   * adversary, which core refuses) — so switching it off restores that error
+   * along with everything else.
+   */
+  rangersFocusTracking: "rangersFocusTracking",
+  /**
    * Repoint a portrait raised by Ginzzzu's Portraits & NPC Dock when the actor's
    * artwork changes underneath it — something that module doesn't do for `img`.
    * World-scoped for consistency with the other feature switches, even though the
@@ -351,6 +365,31 @@ export const FLAGS = {
    * effect someone builds by hand without it is left entirely alone.
    */
   crimsonRite: "crimsonRite",
+  /**
+   * Marks the ActiveEffect this module creates for an active **Ranger's Focus**,
+   * and records who the Focus is: `{ actorUuid, tokenId, name, img }`.
+   *
+   * The effect lives on the **ranger**, not on the creature they are focused on
+   * — an attack resolves on the attacking player's client, and a player cannot
+   * create an ActiveEffect on an adversary. It is therefore both the marker and
+   * the record: exactly one per ranger, replaced when they focus on someone else,
+   * and deleted when the feature ends.
+   */
+  rangersFocus: "rangersFocus",
+  /**
+   * The companion marker on the *creature* being focused on: `{ sourceUuid }`,
+   * naming the ranger.
+   *
+   * A separate key from {@link FLAGS.rangersFocus} on purpose, even though both
+   * mean "Ranger's Focus". One actor can be both a ranger with a Focus and
+   * somebody else's Focus, and a single key would make "find my Focus record"
+   * and "find the mark on me" the same search with two different payload shapes.
+   *
+   * Written by the GM's client on request — see `daggerheart/gm-effects.ts` —
+   * because a player has no permission to create an ActiveEffect on an adversary.
+   * Purely a label: the authoritative record is always the ranger's own effect.
+   */
+  rangersFocusTarget: "rangersFocusTarget",
 } as const;
 
 /** Foundry template paths (served from the module root at runtime). */

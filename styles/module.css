@@ -561,3 +561,133 @@
 .ee-roll-request-spent .ee-roll-request-options {
   opacity: 0.55;
 }
+
+/* Row-styled choices (chooseOne in src/daggerheart/feature-prompt.ts): artwork,
+ * name over a tag, and a figure on the right.
+ *
+ * Deliberately shaped like `daggerheart-target-helper`'s target picker rather
+ * than like anything else here, because the two appear back to back in one flow
+ * — choose a weapon, then choose who to hit with it — and two consecutive
+ * choices that look unrelated read as two unrelated features. The measurements
+ * are that picker's: 40px art, a 3rem row, `auto 1fr auto`. Deliberately *not*
+ * reusing its classes: it's a separate stylesheet that isn't loaded when that
+ * module is off, and these rows have to survive that. */
+.ee-feature-prompt .ee-feature-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.ee-feature-prompt .ee-feature-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  /* `height: auto` is load-bearing, not tidying. Core styles every `button` with
+   * a *fixed* `height: var(--button-size)` (foundry2.css) — 26px in some scopes —
+   * so a row with a name stacked over a tag overflows its own box and laps onto
+   * the row below. `min-height` alone can't fix it: it raises the floor while
+   * `height` still pins the box. Two rules, and both are needed. */
+  height: auto;
+  min-height: 3.5rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--color-border-light-tertiary, rgb(0 0 0 / 25%));
+  border-radius: 4px;
+  background: var(--color-bg-option, rgb(0 0 0 / 5%));
+  color: inherit;
+  font-size: 1rem;
+  line-height: normal;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease,
+    transform 60ms ease;
+}
+
+.ee-feature-prompt .ee-feature-row:hover {
+  border-color: var(--color-shadow-primary, #ff6400);
+  background: rgb(255 100 0 / 10%);
+}
+
+.ee-feature-prompt .ee-feature-row:active {
+  transform: translateY(1px);
+}
+
+/* Core styles `button:focus` with an outline *and* a box-shadow at a specificity
+ * single-class rules here can't reach, which paints a second ring inside the
+ * row. Replaced with a ring of our own rather than suppressed outright, so the
+ * rows stay keyboard-navigable. */
+.ee-feature-prompt .ee-feature-row:focus,
+.ee-feature-prompt .ee-feature-row:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--color-shadow-primary, #ff6400);
+}
+
+/* Square, not the circular portrait the banner uses: this is an object, and a
+ * cropped circle reads as a face. */
+.ee-feature-prompt .ee-feature-row-art {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  object-fit: cover;
+  border: none;
+  border-radius: 3px;
+  background: rgb(0 0 0 / 25%);
+}
+
+.ee-feature-prompt .ee-feature-row-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.ee-feature-prompt .ee-feature-row-name {
+  font-weight: 600;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.ee-feature-prompt .ee-feature-row-tag {
+  padding: 0.05rem 0.35rem;
+  border: 1px solid rgb(120 135 150 / 85%);
+  border-radius: 2px;
+  background: rgb(120 135 150 / 18%);
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* The figure on the right — a caption over a value, so a long formula never
+ * pushes the name out of the row. `tabular-nums` keeps two rows' dice aligned. */
+.ee-feature-prompt .ee-feature-row-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 0 auto;
+  min-width: 3.25rem;
+  padding: 0.15rem 0.3rem;
+  border-radius: 3px;
+  background: rgb(0 0 0 / 20%);
+  line-height: 1.1;
+}
+
+.ee-feature-prompt .ee-feature-row-stat-label {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+
+.ee-feature-prompt .ee-feature-row-stat-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

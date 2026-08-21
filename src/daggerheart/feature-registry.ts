@@ -151,8 +151,17 @@ function sameName(a: unknown, b: string): boolean {
  * Re-derived per event rather than cached: walking an actor's items is trivial
  * next to a dice roll, and a cache would need invalidating on every item create,
  * delete and rename to stay honest — the same reasoning as `reach.ts`.
+ *
+ * Exported because a feature with a window of its own (Hold Them Off, Ranger's
+ * Focus) still has to answer the same question, and a second implementation of
+ * the flag-then-compendium-then-name order would be one more thing to keep in
+ * step with this one.
  */
-function findGrantingItem(actor: AnyObject, id: string, match: FeatureMatch): AnyObject | null {
+export function findGrantingItem(
+  actor: AnyObject,
+  id: string,
+  match: FeatureMatch,
+): AnyObject | null {
   const types = match.itemTypes ?? ["feature"];
 
   for (const item of actor["items"] ?? []) {
